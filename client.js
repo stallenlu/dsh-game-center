@@ -793,7 +793,7 @@ window.__ModuleLoader__.load({
           const cur = sRef.current;
           const name = e.key.length === 1 ? e.key.toLowerCase() : e.key;
           const dir = CHASE_KEYS[name];
-          if (dir) setS((v) => ({ ...v, want: dir, paused: false }));
+          if (dir) setS((v) => ({ ...v, want: dir }));
           else if (name === 'p') setS((v) => (v.started && !v.over ? { ...v, paused: !v.paused } : v));
           else return;
           if (cur.started) e.preventDefault();
