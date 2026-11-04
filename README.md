@@ -4,6 +4,10 @@ A DeepSeek Harness panel plugin that keeps the mini-games built for this harness
 
 一个 DeepSeek Harness 面板插件：把为这个 harness 开发的小游戏集中到一处，不用离开当前窗口就能玩。首发游戏：俄罗斯方块。
 
+![The game library](assets/screenshot-1.png)
+
+![Playing Tetris](assets/screenshot-2.png)
+
 ## Install / 安装
 
 ```sh
