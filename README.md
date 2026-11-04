@@ -10,7 +10,7 @@
 
 ## English
 
-A DeepSeek Harness panel plugin that keeps the mini-games built for this harness in one place, and lets you play them without leaving the window. Ships with Tetris.
+A DeepSeek Harness panel plugin that keeps the mini-games built for this harness in one place, and lets you play them without leaving the window. Ships with Tetris and Cops & Robbers.
 
 ![The game library](assets/screenshot-1.png)
 
@@ -36,11 +36,14 @@ Restart DSH (or refresh the Web UI) afterwards, then open **Game Center** from t
 
 - **One list for the games.** The panel is a game library: each game is a card with its name, category, version and status, and it plays in the same panel — no new tab or window.
 - **Tetris.** A 10×20 board, seven pieces with wall kicks, a ghost piece, a next-piece preview, line-clear scoring, levels that speed the falling piece up, pause/restart, and a best score kept in `localStorage`.
-- **Difficulty.** Easy / Normal / Hard start the game at level 1 / 3 / 5; the level still rises as you clear lines.
+- **Cops & Robbers.** Play the thief on a walled grid: collect every piece of loot to clear the level while the police hunt you down. They path around the walls toward you, each level sends one more, and three lives stand between you and game over.
+- **Difficulty.** Easy / Normal / Hard start Tetris at level 1 / 3 / 5 and give Cops & Robbers 1 / 2 / 3 police; the level still rises as you play.
 - **Settings.** Show or hide the sidebar entry, and reset to defaults. Reachable from the gear button in the panel header and from the plugin's page under **Plugins**.
 - **Theme.** Colours come from the harness theme tokens (`--dsw-alias-*`), so the panel follows light and dark mode.
 
 ### Controls
+
+**Tetris**
 
 | Key | Action |
 | --- | --- |
@@ -50,16 +53,24 @@ Restart DSH (or refresh the Web UI) afterwards, then open **Game Center** from t
 | `Space` | Hard drop |
 | `P` | Pause |
 
+**Cops & Robbers**
+
+| Key | Action |
+| --- | --- |
+| `W` `A` `S` `D` | Move one cell |
+| `←` `↑` `↓` `→` | Move one cell |
+| `P` | Pause |
+
 ### Layout
 
 ```
-client.js          the Web client plugin: panel, settings, games, Tetris
+client.js          the Web client plugin: panel, settings, games, Tetris, Cops & Robbers
 index.js           host-side entry (no host behaviour)
 cordis.patch.yml   the insert row that mounts the bundle
 locale/*.json      the plugin-list title and description
 icon.svg           the in-app icon
 assets/            storefront images
-verify.mjs         runnable check (node verify.mjs) — wiring + Tetris core
+verify.mjs         runnable check (node verify.mjs) — wiring + both games' cores
 ```
 
 ### Adding a game
@@ -68,7 +79,7 @@ verify.mjs         runnable check (node verify.mjs) — wiring + Tetris core
 
 ### Development
 
-`verify.mjs` runs without the harness: it loads `client.js`, captures the module, calls `apply()` against a stub context, asserts the three slots (main panel, sidebar entry, plugin-page config) and the locale registrations, then exercises the Tetris core (rotation, collision, line clearing, drop scoring).
+`verify.mjs` runs without the harness: it loads `client.js`, captures the module, calls `apply()` against a stub context, asserts the three slots (main panel, sidebar entry, plugin-page config) and the locale registrations, then exercises the Tetris core (rotation, collision, line clearing, drop scoring) and the chase core (map integrity, pathfinding, loot, lives).
 
 ```sh
 node verify.mjs
@@ -82,7 +93,7 @@ MIT
 
 ## 中文
 
-一个 DeepSeek Harness 面板插件：把为这个 harness 开发的小游戏集中到一处，不用离开当前窗口就能玩。首发游戏：俄罗斯方块。
+一个 DeepSeek Harness 面板插件：把为这个 harness 开发的小游戏集中到一处，不用离开当前窗口就能玩。自带游戏：俄罗斯方块、警察抓小偷。
 
 ![游戏库](assets/screenshot-1.png)
 
@@ -108,11 +119,14 @@ dsh plugin add github:stallenlu/dsh-game-center
 
 - **一个列表管理游戏。** 面板本身就是游戏库：每款游戏一张卡片，带名称、分类、版本与状态，点开就在同一面板里游玩，不新开标签页或窗口。
 - **俄罗斯方块。** 10×20 棋盘、七种方块（含靠墙微调）、落点虚影、下一个方块预览、消行计分、等级越高落得越快、暂停/重开，最高分存在 `localStorage`。
-- **难度。** 简单 / 普通 / 困难分别从第 1 / 3 / 5 级开始；等级仍会随消行继续上升。
+- **警察抓小偷。** 你扮演小偷，在有墙的棋盘上把赃物全部捡走即可过关，同时要躲开追捕的警察。警察会绕开墙走最短路线追你，每过一关多一个警察，你有三条命。
+- **难度。** 简单 / 普通 / 困难分别让俄罗斯方块从第 1 / 3 / 5 级开始，并让警察抓小偷开局有 1 / 2 / 3 个警察；等级仍会随游玩继续上升。
 - **设置。** 可以显示或隐藏侧边栏入口，以及恢复默认。面板右上角的齿轮按钮和插件页都能打开。
 - **主题。** 配色取自 harness 主题变量（`--dsw-alias-*`），明暗主题自动跟随。
 
 ### 操作
+
+**俄罗斯方块**
 
 | 按键 | 作用 |
 | --- | --- |
@@ -122,16 +136,24 @@ dsh plugin add github:stallenlu/dsh-game-center
 | `Space` | 硬降 |
 | `P` | 暂停 |
 
+**警察抓小偷**
+
+| 按键 | 作用 |
+| --- | --- |
+| `W` `A` `S` `D` | 走一格 |
+| `←` `↑` `↓` `→` | 走一格 |
+| `P` | 暂停 |
+
 ### 目录
 
 ```
-client.js          Web 客户端插件：面板、设置、游戏、俄罗斯方块
+client.js          Web 客户端插件：面板、设置、游戏、俄罗斯方块、警察抓小偷
 index.js           宿主侧入口（无宿主行为）
 cordis.patch.yml   挂载 bundle 的 insert 行
 locale/*.json      插件列表的标题与描述
 icon.svg           应用内图标
 assets/            商店图片
-verify.mjs         可运行自检（node verify.mjs）：接线 + 俄罗斯方块核心
+verify.mjs         可运行自检（node verify.mjs）：接线 + 两款游戏的核心逻辑
 ```
 
 ### 增加小游戏
@@ -140,7 +162,7 @@ verify.mjs         可运行自检（node verify.mjs）：接线 + 俄罗斯方�
 
 ### 开发
 
-`verify.mjs` 不依赖 harness 即可运行：加载 `client.js`、捕获模块、用桩上下文调用 `apply()`，断言三个插槽（主面板、侧边栏入口、插件页配置）与语言注册，再跑一遍俄罗斯方块核心逻辑（旋转、碰撞、消行、下落计分）。
+`verify.mjs` 不依赖 harness 即可运行：加载 `client.js`、捕获模块、用桩上下文调用 `apply()`，断言三个插槽（主面板、侧边栏入口、插件页配置）与语言注册，再跑一遍俄罗斯方块核心逻辑（旋转、碰撞、消行、下落计分）和追捕逻辑（地图连通性、寻路、拾取赃物、命数）。
 
 ```sh
 node verify.mjs

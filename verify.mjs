@@ -1,4 +1,4 @@
-/* Minimal check: wiring + Tetris core logic. Run: node game-center/verify.mjs */
+/* Minimal check: wiring + the two games' core logic. Run: node game-center/verify.mjs */
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
@@ -6,7 +6,7 @@ let src = fs.readFileSync(new URL('./client.js', import.meta.url), 'utf8');
 // Expose the pure helpers from inside the factory for assertions.
 const marker = "    return {\n      inject: ['slots', 'locale'],";
 assert.ok(src.includes(marker), 'factory return marker not found');
-src = src.replace(marker, "    globalThis.__GC__ = { COLS, ROWS, SHAPES, rotateShape, emptyBoard, makePiece, collides, merge, clearLines, initialState, step, move, softDrop, rotate, hardDrop, ghostY, lockAndSpawn };\n" + marker);
+src = src.replace(marker, "    globalThis.__GC__ = { COLS, ROWS, SHAPES, rotateShape, emptyBoard, makePiece, collides, merge, clearLines, initialState, step, move, softDrop, rotate, hardDrop, ghostY, lockAndSpawn, CHASE_COLS, CHASE_ROWS, CHASE_WALL, CHASE_LOOT, CHASE_THIEF_START, CHASE_COP_STARTS, chaseWalkable, chaseLevel, chaseStep, chaseInitial, chaseReset, chaseTick };\n" + marker);
 
 const React = {
   createElement: () => ({}),
@@ -96,4 +96,82 @@ assert.ok(rot.piece.shape, 'rotate returns a shape');
 const gy = G.ghostY({ ...s0, started: true, piece: { ...s0.piece, shape: G.SHAPES.O, x: 0, y: 0 } });
 assert.ok(gy >= 18, 'ghost lands near bottom');
 
-console.log('game-center verify: ALL OK (wiring + ' + registrations.length + ' slots + Tetris core)');
+// --- Cops & Robbers: the map is sound ---
+assert.equal(G.CHASE_COLS, 15); assert.equal(G.CHASE_ROWS, 13);
+G.CHASE_WALL.forEach((row, r) => {
+  assert.equal(row.length, 15, 'map row ' + r + ' width');
+  assert.equal(row[0] === true && row[14] === true, true, 'map row ' + r + ' side border');
+});
+assert.equal(G.CHASE_WALL[0].every(Boolean), true, 'top border');
+assert.equal(G.CHASE_WALL[12].every(Boolean), true, 'bottom border');
+G.CHASE_LOOT.forEach((p) => assert.equal(G.chaseWalkable(p[0], p[1]), true, 'loot on floor ' + p));
+G.CHASE_COP_STARTS.forEach((p) => assert.equal(G.chaseWalkable(p.x, p.y), true, 'cop spawn on floor'));
+assert.equal(G.chaseWalkable(G.CHASE_THIEF_START.x, G.CHASE_THIEF_START.y), true, 'thief spawn on floor');
+assert.equal(G.CHASE_LOOT.some((p) => p[0] === G.CHASE_THIEF_START.x && p[1] === G.CHASE_THIEF_START.y), false, 'no loot under the thief');
+G.CHASE_COP_STARTS.forEach((c) => assert.equal(G.CHASE_LOOT.some((p) => p[0] === c.x && p[1] === c.y), false, 'no loot under a cop'));
+assert.equal(G.chaseWalkable(0, 0), false, 'the border is wall');
+assert.equal(G.chaseWalkable(1, 1), true, 'the corner is floor');
+// every floor cell must be reachable from the thief, or loot could be sealed away
+const seen = new Set([G.CHASE_THIEF_START.y * 15 + G.CHASE_THIEF_START.x]);
+const queue = [G.CHASE_THIEF_START];
+while (queue.length) {
+  const c = queue.shift();
+  [[0, -1], [0, 1], [-1, 0], [1, 0]].forEach((d) => {
+    const nx = c.x + d[0]; const ny = c.y + d[1]; const k = ny * 15 + nx;
+    if (!G.chaseWalkable(nx, ny) || seen.has(k)) return;
+    seen.add(k); queue.push({ x: nx, y: ny });
+  });
+}
+let floorCells = 0;
+G.CHASE_WALL.forEach((row) => row.forEach((w) => { if (!w) floorCells += 1; }));
+assert.equal(seen.size, floorCells, 'every floor cell is reachable');
+
+// --- Cops & Robbers: rules ---
+assert.equal(G.chaseStep({ x: 5, y: 11 }, { x: 5, y: 3 }).y, 10, 'one cell up the corridor');
+const around = G.chaseStep({ x: 7, y: 11 }, { x: 7, y: 3 });
+assert.ok(around, 'a route exists around the wall');
+assert.equal(Math.abs(around.x - 7) + Math.abs(around.y - 11), 1, 'still a single step');
+assert.ok(around.x !== 7, 'steps aside when the straight line is walled');
+assert.equal(G.chaseStep({ x: 7, y: 3 }, { x: 7, y: 3 }), null, 'no step when already there');
+const lv1 = G.chaseLevel('normal', 1);
+assert.equal(lv1.cops, 2); assert.equal(lv1.copEvery, 2); assert.equal(lv1.tick, 175);
+assert.equal(G.chaseLevel('easy', 1).cops, 1);
+assert.equal(G.chaseLevel('hard', 1).cops, 3);
+assert.equal(G.chaseLevel('normal', 2).cops, 3, 'an extra cop every two levels');
+assert.equal(G.chaseLevel('normal', 2).tick, 165, 'levels speed the police up');
+assert.ok(G.chaseLevel('normal', 40).tick >= 90, 'the tick has a floor');
+assert.equal(G.chaseLevel('nope', 1).cops, 2, 'an unknown difficulty falls back to normal');
+// a tick runs the thief, moves the cops on cadence, and collects loot
+let cs = { ...G.chaseInitial('normal'), started: true, want: { x: 0, y: -1 } };
+cs = G.chaseTick(cs);
+assert.equal(cs.thief.y, G.CHASE_THIEF_START.y - 1, 'thief stepped up');
+assert.equal(cs.dir.y, -1, 'the turn was committed');
+// the thief cannot walk into a wall, and keeps its line when a turn is blocked
+const blocked = G.chaseTick({ ...G.chaseInitial('easy'), started: true, thief: { x: 1, y: 5 }, want: { x: -1, y: 0 } });
+assert.equal(blocked.thief.x, 1, 'thief stopped by the wall');
+// loot scores; taking the last piece clears the level and sends another cop
+let one = { ...G.chaseInitial('normal'), started: true, thief: { x: 3, y: 9 }, loot: [{ x: 3, y: 9 }, { x: 11, y: 9 }] };
+one = G.chaseTick(one);
+assert.equal(one.loot.length, 1, 'one piece collected');
+assert.equal(one.score, 100, 'loot scored');
+assert.equal(one.level, 1, 'the level continues');
+let pick = { ...G.chaseInitial('normal'), started: true, thief: { x: 3, y: 9 }, loot: [{ x: 3, y: 9 }] };
+pick = G.chaseTick(pick);
+assert.equal(pick.score, 350, 'loot plus clear bonus');
+assert.equal(pick.level, 2, 'level cleared');
+assert.equal(pick.loot.length, G.CHASE_LOOT.length, 'fresh loot on the next level');
+assert.equal(pick.cops.length, 3, 'the next level sends another cop');
+// a cop reaching the thief costs a life and resets the board
+let caught = { ...G.chaseInitial('normal'), started: true, thief: { x: 5, y: 9 }, cops: [{ x: 5, y: 8 }], ticks: 1 };
+caught = G.chaseTick(caught);
+assert.equal(caught.lives, 2, 'a life was lost');
+assert.equal(caught.thief.x, G.CHASE_THIEF_START.x, 'thief is back at the start');
+assert.equal(caught.over, false, 'the run continues');
+// losing the last life ends the run; a paused tick changes nothing
+let dead = { ...G.chaseInitial('normal'), started: true, lives: 1, thief: { x: 5, y: 9 }, cops: [{ x: 5, y: 8 }], ticks: 1 };
+dead = G.chaseTick(dead);
+assert.equal(dead.lives, 0); assert.equal(dead.over, true, 'the last life ends the run');
+const frozen = { ...G.chaseInitial('normal'), started: true, paused: true };
+assert.equal(G.chaseTick(frozen), frozen, 'a paused tick is a no-op');
+
+console.log('game-center verify: ALL OK (wiring + ' + registrations.length + ' slots + 2 games)');

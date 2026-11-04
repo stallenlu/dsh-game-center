@@ -42,7 +42,12 @@ window.__ModuleLoader__.load({
       diffHard: '困难',
       tetris: '俄罗斯方块',
       tetrisDesc: '经典落块益智游戏。消除整行、提升等级、刷新最高分。',
+      chase: '警察抓小偷',
+      chaseDesc: '扮演小偷，把赃物全部捡走就能过关，同时别让警察抓住。每过一关警察都会更多、更快。',
       category: '益智',
+      categoryAction: '动作',
+      lives: '命数',
+      loot: '剩余赃物',
       version: 'v1.0',
       status: '可游玩',
       empty: '后续开发的小游戏会自动出现在这里。',
@@ -88,7 +93,12 @@ window.__ModuleLoader__.load({
       diffHard: 'Hard',
       tetris: 'Tetris',
       tetrisDesc: 'The classic falling-block puzzle. Clear lines, level up, chase a high score.',
+      chase: 'Cops & Robbers',
+      chaseDesc: 'Be the thief: grab every piece of loot to clear the level before the police catch you. Each level sends more of them, and they get faster.',
       category: 'Puzzle',
+      categoryAction: 'Action',
+      lives: 'Lives',
+      loot: 'Loot left',
       version: 'v1.0',
       status: 'Ready',
       empty: 'More mini-games will show up here as they are added.',
@@ -176,6 +186,9 @@ window.__ModuleLoader__.load({
       .gc-ctrl-label { font-size: 12px; color: var(--dsw-alias-label-secondary); white-space: nowrap; }
       .gc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
       .gc-actions .gc-btn { flex: 1; }
+      .gc-chase-board { display: grid; grid-template-columns: repeat(15, 28px); grid-auto-rows: 28px; gap: 1px; padding: 6px; background: var(--dsw-alias-bg-layer-2); border: 1px solid var(--dsw-alias-border-l1); border-radius: 12px; }
+      .gc-chase-cell { display: flex; align-items: center; justify-content: center; border-radius: 3px; background: var(--dsw-alias-bg-layer-1); font-size: 17px; line-height: 1; user-select: none; }
+      .gc-chase-cell.wall { background: var(--dsw-alias-border-l3); }
     `;
 
     function insertStyles(css) {
@@ -209,11 +222,13 @@ window.__ModuleLoader__.load({
     /* ------------------------------------------------------------------ *
      * Settings — placement + difficulty, persisted in localStorage.
      * ------------------------------------------------------------------ */
-    // Difficulty only sets the starting level; the level still rises with cleared lines.
+    // Difficulty sets the starting level (the level still rises as you play) and,
+    // for the chase, how many police start on the board, how fast they step
+    // (tick, ms) and how many player steps pass between their moves (copEvery).
     const DIFFICULTIES = [
-      { id: 'easy', labelKey: 'diffEasy', level: 1 },
-      { id: 'normal', labelKey: 'diffNormal', level: 3 },
-      { id: 'hard', labelKey: 'diffHard', level: 5 },
+      { id: 'easy', labelKey: 'diffEasy', level: 1, police: 1, tick: 200, copEvery: 3 },
+      { id: 'normal', labelKey: 'diffNormal', level: 3, police: 2, tick: 175, copEvery: 2 },
+      { id: 'hard', labelKey: 'diffHard', level: 5, police: 3, tick: 150, copEvery: 2 },
     ];
     function levelForDifficulty(id) {
       const d = DIFFICULTIES.find((x) => x.id === id);
@@ -447,17 +462,19 @@ window.__ModuleLoader__.load({
     }
 
     // One row per control: key caps on the left, action on the right.
-    function Controls({ t }) {
-      const rows = [
-        { keys: ['←', '→'], label: t('ctrlMove') },
-        { keys: ['↑', 'X'], label: t('ctrlRotate') },
-        { keys: ['↓'], label: t('ctrlSoftDrop') },
-        { keys: [t('keySpace')], label: t('ctrlHardDrop') },
-        { keys: ['P'], label: t('ctrlPause') },
-      ];
+    // `rows` lets a game supply its own key map; Tetris uses the default.
+    const tetrisControlRows = (t) => [
+      { keys: ['←', '→'], label: t('ctrlMove') },
+      { keys: ['↑', 'X'], label: t('ctrlRotate') },
+      { keys: ['↓'], label: t('ctrlSoftDrop') },
+      { keys: [t('keySpace')], label: t('ctrlHardDrop') },
+      { keys: ['P'], label: t('ctrlPause') },
+    ];
+    function Controls({ t, rows }) {
       // Flat grid children: the key column right-aligns, so labels line up in one straight column.
+      const list = rows || tetrisControlRows(t);
       const cells = [];
-      rows.forEach((row) => {
+      list.forEach((row) => {
         cells.push(h('span', { className: 'gc-keys', key: row.label + '-k' },
           row.keys.map((k, i) => h('kbd', { className: 'gc-kbd', key: i }, k))));
         cells.push(h('span', { className: 'gc-ctrl-label', key: row.label }, row.label));
@@ -577,6 +594,268 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------ *
+     * Cops & Robbers — you are the thief. Collect every piece of loot to
+     * clear the level while the police hunt you down. Everyone moves one
+     * cell at a time on a fixed grid, so the whole game is plain data in /
+     * data out: no timers or DOM inside the rules, which makes it testable
+     * headlessly from verify.mjs.
+     * ------------------------------------------------------------------ */
+    // '#' wall, '.' floor. Loot and spawn points are listed separately so the
+    // map stays readable and every position is checkable from verify.mjs.
+    const CHASE_MAP = [
+      '###############',
+      '#.............#',
+      '#.###.###.###.#',
+      '#.............#',
+      '#.###.#.#.###.#',
+      '#.....#.#.....#',
+      '###.#.#.#.#.###',
+      '#.....#.#.....#',
+      '#.###.#.#.###.#',
+      '#.............#',
+      '#.###.###.###.#',
+      '#.............#',
+      '###############',
+    ];
+    const CHASE_COLS = CHASE_MAP[0].length;
+    const CHASE_ROWS = CHASE_MAP.length;
+    const CHASE_WALL = CHASE_MAP.map((row) => Array.from(row, (ch) => ch === '#'));
+    const CHASE_LOOT = [[3, 3], [7, 3], [11, 3], [3, 9], [7, 6], [11, 9]];
+    const CHASE_THIEF_START = { x: 7, y: 9 };
+    const CHASE_COP_STARTS = [
+      { x: 1, y: 1 }, { x: 13, y: 1 }, { x: 7, y: 1 },
+      { x: 1, y: 11 }, { x: 13, y: 11 }, { x: 7, y: 11 },
+    ];
+    const CHASE_STEPS = [{ x: 0, y: -1 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 0 }];
+    const CHASE_KEYS = {
+      ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 },
+      ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
+      w: { x: 0, y: -1 }, s: { x: 0, y: 1 }, a: { x: -1, y: 0 }, d: { x: 1, y: 0 },
+    };
+
+    function chaseWalkable(x, y) {
+      return x >= 0 && x < CHASE_COLS && y >= 0 && y < CHASE_ROWS && !CHASE_WALL[y][x];
+    }
+
+    // Level N of the chase: how many police, how fast they step, how often.
+    function chaseLevel(difficulty, level) {
+      const d = DIFFICULTIES.find((x) => x.id === difficulty) || DIFFICULTIES[1];
+      return {
+        cops: Math.min(CHASE_COP_STARTS.length, d.police + Math.floor(level / 2)),
+        tick: Math.max(90, d.tick - (level - 1) * 10),
+        copEvery: d.copEvery,
+      };
+    }
+
+    // One BFS step from `from` toward `to`; null when already there or cut off.
+    // The first move out of `from` is remembered and carried along the walk, so
+    // the police always take the shortest route around walls.
+    function chaseStep(from, to) {
+      const key = (p) => p.y * CHASE_COLS + p.x;
+      if (key(from) === key(to)) return null;
+      const head = new Map();
+      const seen = new Set([key(from)]);
+      let frontier = [from];
+      while (frontier.length) {
+        const next = [];
+        for (let i = 0; i < frontier.length; i++) {
+          const cell = frontier[i];
+          for (let s = 0; s < CHASE_STEPS.length; s++) {
+            const nx = cell.x + CHASE_STEPS[s].x;
+            const ny = cell.y + CHASE_STEPS[s].y;
+            const nk = ny * CHASE_COLS + nx;
+            if (!chaseWalkable(nx, ny) || seen.has(nk)) continue;
+            seen.add(nk);
+            head.set(nk, cell === from ? { x: nx, y: ny } : head.get(key(cell)));
+            if (nx === to.x && ny === to.y) return head.get(nk);
+            next.push({ x: nx, y: ny });
+          }
+        }
+        frontier = next;
+      }
+      return null;
+    }
+
+    // Put the thief and the police back on their spawn points (a new level, or
+    // after being caught — where the loot already collected stays collected).
+    function chaseReset(s) {
+      const cfg = chaseLevel(s.difficulty, s.level);
+      return {
+        ...s,
+        thief: { x: CHASE_THIEF_START.x, y: CHASE_THIEF_START.y },
+        dir: null,
+        want: null,
+        ticks: 0,
+        cops: CHASE_COP_STARTS.slice(0, cfg.cops).map((c) => ({ x: c.x, y: c.y })),
+      };
+    }
+    function chaseRespawn(s) {
+      return { ...chaseReset(s), loot: CHASE_LOOT.map((p) => ({ x: p[0], y: p[1] })) };
+    }
+    function chaseInitial(difficulty) {
+      return chaseRespawn({
+        started: false, over: false, paused: false,
+        level: 1, score: 0, lives: 3, difficulty, ticks: 0, loot: [],
+      });
+    }
+    function chaseCaught(s) {
+      if (s.lives <= 1) return { ...s, lives: 0, over: true, paused: false };
+      return chaseReset({ ...s, lives: s.lives - 1 });
+    }
+
+    // One step of the chase. Pure: same state in, same state out.
+    function chaseTick(s) {
+      if (!s.started || s.over || s.paused) return s;
+      const cfg = chaseLevel(s.difficulty, s.level);
+      const next = { ...s, ticks: s.ticks + 1 };
+
+      // The thief keeps running the way it was headed; a key only turns it when
+      // that direction is open, so held keys feel continuous like Pac-Man.
+      let dir = next.dir;
+      if (next.want && chaseWalkable(next.thief.x + next.want.x, next.thief.y + next.want.y)) dir = next.want;
+      let thief = next.thief;
+      if (dir && chaseWalkable(thief.x + dir.x, thief.y + dir.y)) thief = { x: thief.x + dir.x, y: thief.y + dir.y };
+      next.dir = dir;
+      next.thief = thief;
+
+      const picked = next.loot.findIndex((l) => l.x === thief.x && l.y === thief.y);
+      if (picked >= 0) {
+        next.loot = next.loot.filter((l, i) => i !== picked);
+        next.score = next.score + 100;
+        if (!next.loot.length) {
+          next.level = next.level + 1;
+          next.score = next.score + 250 * (next.level - 1);   // clear bonus
+          return chaseRespawn(next);
+        }
+      }
+
+      if (next.cops.some((c) => c.x === thief.x && c.y === thief.y)) return chaseCaught(next);
+      if (next.ticks % cfg.copEvery !== 0) return next;
+      next.cops = next.cops.map((cop) => chaseStep(cop, thief) || cop);
+      if (next.cops.some((c) => c.x === thief.x && c.y === thief.y)) return chaseCaught(next);
+      return next;
+    }
+
+    function ChaseBoard({ s }) {
+      const key = (p) => p.y * CHASE_COLS + p.x;
+      const copAt = new Set(s.cops.map(key));
+      const lootAt = new Set(s.loot.map(key));
+      const thiefAt = key(s.thief);
+      const cells = [];
+      for (let r = 0; r < CHASE_ROWS; r++) {
+        for (let c = 0; c < CHASE_COLS; c++) {
+          const wall = CHASE_WALL[r][c];
+          const k = r * CHASE_COLS + c;
+          let glyph = null;
+          if (!wall) {
+            if (copAt.has(k)) glyph = '👮';
+            else if (k === thiefAt) glyph = '🥷';
+            else if (lootAt.has(k)) glyph = '💰';
+          }
+          cells.push(h('div', { key: k, className: 'gc-chase-cell' + (wall ? ' wall' : '') }, glyph));
+        }
+      }
+      return h('div', { className: 'gc-chase-board' }, cells);
+    }
+
+    const chaseControlRows = (t) => [
+      { keys: ['W', 'A', 'S', 'D'], label: t('ctrlMove') },
+      { keys: ['←', '↑', '↓', '→'], label: t('ctrlMove') },
+      { keys: ['P'], label: t('ctrlPause') },
+    ];
+
+    function ChaseGame({ t }) {
+      const [s, setS] = useState(() => chaseInitial(getSettings().difficulty));
+      const [best, setBest] = useState(() => {
+        try { return Number(window.localStorage.getItem('gc-chase-best')) || 0; } catch (e) { return 0; }
+      });
+      const sRef = useRef(s);
+      sRef.current = s;
+
+      useEffect(() => {
+        if (s.score > best) {
+          setBest(s.score);
+          try { window.localStorage.setItem('gc-chase-best', String(s.score)); } catch (e) { /* private mode */ }
+        }
+      }, [s.score, best]);
+
+      const tick = chaseLevel(s.difficulty, s.level).tick;
+      useEffect(() => {
+        if (!s.started || s.over || s.paused) return undefined;
+        const id = setInterval(() => setS(chaseTick), tick);
+        return () => clearInterval(id);
+      }, [s.started, s.over, s.paused, tick]);
+
+      useEffect(() => {
+        const onKey = (e) => {
+          const el = e.target;
+          if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName || ''))) return;
+          const cur = sRef.current;
+          const name = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+          const dir = CHASE_KEYS[name];
+          if (dir) setS((v) => ({ ...v, want: dir, paused: false }));
+          else if (name === 'p') setS((v) => (v.started && !v.over ? { ...v, paused: !v.paused } : v));
+          else return;
+          if (cur.started) e.preventDefault();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, []);
+
+      const start = () => setS({ ...chaseInitial(getSettings().difficulty), started: true });
+      let overlay = null;
+      if (!s.started) {
+        overlay = h('div', { className: 'gc-overlay' },
+          h('div', { className: 'gc-overlay-title' }, t('chase')),
+          h(Controls, { t, rows: chaseControlRows(t) }),
+          h('button', { className: 'gc-btn', type: 'button', onClick: start }, t('start')));
+      } else if (s.over) {
+        overlay = h('div', { className: 'gc-overlay' },
+          h('div', { className: 'gc-overlay-title' }, t('gameOver')),
+          h('div', { className: 'gc-overlay-sub' }, t('finalScore') + ': ' + s.score),
+          h('button', { className: 'gc-btn', type: 'button', onClick: start }, t('newGame')));
+      } else if (s.paused) {
+        overlay = h('div', { className: 'gc-overlay' },
+          h('div', { className: 'gc-overlay-title' }, t('paused')),
+          h('button', {
+            className: 'gc-btn', type: 'button',
+            onClick: () => setS((v) => ({ ...v, paused: false })),
+          }, t('resume')));
+      }
+
+      return h('div', { className: 'gc-play' },
+        h('div', { className: 'gc-board-wrap' }, h(ChaseBoard, { s }), overlay),
+        h('div', { className: 'gc-side' },
+          h('div', { className: 'gc-panel' },
+            h('div', { className: 'gc-panel-title' }, t('score')),
+            h('div', { className: 'gc-stat' },
+              h('span', { className: 'gc-stat-label' }, t('score')),
+              h('span', { className: 'gc-stat-value' }, s.score)),
+            h('div', { className: 'gc-stat' },
+              h('span', { className: 'gc-stat-label' }, t('best')),
+              h('span', { className: 'gc-stat-value' }, best)),
+            h('div', { className: 'gc-stat' },
+              h('span', { className: 'gc-stat-label' }, t('level')),
+              h('span', { className: 'gc-stat-value' }, s.level)),
+            h('div', { className: 'gc-stat' },
+              h('span', { className: 'gc-stat-label' }, t('lives')),
+              h('span', { className: 'gc-stat-value' }, s.lives)),
+            h('div', { className: 'gc-stat' },
+              h('span', { className: 'gc-stat-label' }, t('loot')),
+              h('span', { className: 'gc-stat-value' }, s.loot.length))),
+          h('div', { className: 'gc-panel' },
+            h('div', { className: 'gc-panel-title' }, t('controls')),
+            h(Controls, { t, rows: chaseControlRows(t) })),
+          h('div', { className: 'gc-actions' },
+            h('button', {
+              className: 'gc-btn ghost small', type: 'button',
+              disabled: !s.started || s.over,
+              onClick: () => setS((v) => ({ ...v, paused: !v.paused })),
+            }, s.paused ? t('resume') : t('pause')),
+            h('button', { className: 'gc-btn ghost small', type: 'button', onClick: start }, t('restart')))));
+    }
+
+    /* ------------------------------------------------------------------ *
      * Registry — one entry per mini-game. Adding a game = appending here.
      * ponytail: static in-bundle list; upgrade path: load from host storage
      * if games ever become installable without shipping a new bundle.
@@ -597,6 +876,22 @@ window.__ModuleLoader__.load({
         ],
         thumbColor: '#a855f7',
         render: (t) => h(TetrisGame, { t }),
+      },
+      {
+        id: 'chase',
+        nameKey: 'chase',
+        descKey: 'chaseDesc',
+        categoryKey: 'categoryAction',
+        version: 'v1.0',
+        statusKey: 'status',
+        thumb: [
+          [0, 1, 1, 1, 1, 0],
+          [0, 0, 0, 0, 0, 0],
+          [1, 1, 0, 1, 1, 0],
+          [0, 0, 0, 0, 0, 1],
+        ],
+        thumbColor: '#f59e0b',
+        render: (t) => h(ChaseGame, { t }),
       },
     ];
 
