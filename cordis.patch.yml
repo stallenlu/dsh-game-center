@@ -1,0 +1,5 @@
+# game-center: mini-game registry and playable Tetris.
+# The insert row is what makes this bundle load; keep the id on its own line.
+- insert:
+    - id: game-center
+      name: 'dsh-game-center'

@@ -1,0 +1,54 @@
+{
+  "name": "dsh-game-center",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Game Center for DSH: a panel that manages every mini-game built here and lets you play them. Ships with Tetris.",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg"
+  ],
+  "icon": "./icon.svg",
+  "engines": {
+    "node": ">=22"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    }
+  },
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "plugin",
+    "game-center",
+    "tetris"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stallenlu/dsh-game-center.git"
+  },
+  "homepage": "https://github.com/stallenlu/dsh-game-center#readme",
+  "bugs": {
+    "url": "https://github.com/stallenlu/dsh-game-center/issues"
+  }
+}
