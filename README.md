@@ -75,7 +75,9 @@ verify.mjs         runnable check (node verify.mjs) — wiring + both games' cor
 
 ### Adding a game
 
-`client.js` has a `GAMES` registry; an entry declares `{ id, nameKey, descKey, categoryKey, version, statusKey, thumb, thumbCell, thumbGap, render(t) }` and appears in the library automatically. `thumb` is a matrix of colours drawn as the card's picture — both shipped games build theirs from their own data (`tetrisThumb()` drops real pieces with `SHAPES`/`COLORS`, `chaseThumb()` draws `CHASE_MAP`), so the picture cannot drift from the game. `render` receives the translate function and returns the game's element. A new game also needs its strings added to the `zh` / `en` dictionaries registered at the top of `apply()`.
+`client.js` has a `GAMES` registry; an entry declares `{ id, nameKey, descKey, categoryKey, version, statusKey, thumb, thumbCell, thumbGap, render(t) }` and appears in the library automatically. `render` receives the translate function and returns the game's element. A new game also needs its strings added to the `zh` / `en` dictionaries registered at the top of `apply()`.
+
+**The card's picture must come from the game, not from decoration.** Write a `xxxThumb()` that builds the matrix out of that game's own constants — a board, a map, its real colours — and set `thumbCell` / `thumbGap` so it fits the 104px panel. Both shipped games do this (`tetrisThumb()` drops real pieces through `SHAPES` / `COLORS` / `collides`, `chaseThumb()` draws `CHASE_MAP`), and `verify.mjs` asserts for every registered game that the picture is a non-blank grid of equal-width rows holding colours — so a hand-drawn or empty one fails the check. Note `.gc-thumb` is a `grid`: it used to be a `flex` row, which laid a 2D matrix out as one clipped line of cells.
 
 ### Development
 
@@ -158,7 +160,9 @@ verify.mjs         可运行自检（node verify.mjs）：接线 + 两款游戏�
 
 ### 增加小游戏
 
-`client.js` 里有一个 `GAMES` 注册表，一条记录声明 `{ id, nameKey, descKey, categoryKey, version, statusKey, thumb, thumbCell, thumbGap, render(t) }` 后会自动出现在游戏库中。`thumb` 是一张颜色矩阵，作为卡片上的示意图——两款游戏都直接用自己的数据生成（`tetrisThumb()` 用 `SHAPES`/`COLORS` 真的落方块，`chaseThumb()` 画的就是 `CHASE_MAP`），所以图不会和游戏本身走偏。`render` 收到翻译函数并返回游戏元素；新游戏还需要把文案加进 `apply()` 顶部注册的 `zh` / `en` 字典。
+`client.js` 里有一个 `GAMES` 注册表，一条记录声明 `{ id, nameKey, descKey, categoryKey, version, statusKey, thumb, thumbCell, thumbGap, render(t) }` 后会自动出现在游戏库中。`render` 收到翻译函数并返回游戏元素；新游戏还需要把文案加进 `apply()` 顶部注册的 `zh` / `en` 字典。
+
+**卡片示意图必须来自游戏本身，不能用装饰性的图。** 写一个 `xxxThumb()`，用这款游戏自己的常量搭出矩阵——棋盘、地图、真实配色——再用 `thumbCell` / `thumbGap` 让它放进 104px 的图区。现有两款都是这么做的（`tetrisThumb()` 通过 `SHAPES` / `COLORS` / `collides` 真的落方块，`chaseThumb()` 画的就是 `CHASE_MAP`），`verify.mjs` 会对注册表里**每一款**游戏断言示意图是非空网格、每行等宽、格子是颜色——所以手写的装饰图或空图会直接被自检拦下。另外注意 `.gc-thumb` 是 `grid`：它曾经是 `flex` 单行，会把二维矩阵排成一行再裁掉。
 
 ### 开发
 
