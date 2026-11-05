@@ -34,7 +34,7 @@ Restart DSH (or refresh the Web UI) afterwards, then open **Game Center** from t
 
 ### What it does
 
-- **One list for the games.** The panel is a game library: each game is a card with its name, category, version and status, and it plays in the same panel — no new tab or window.
+- **One list for the games.** The panel is a game library: each game is a card with a picture built from the game itself, its name, category, version and status, and it plays in the same panel — no new tab or window.
 - **Tetris.** A 10×20 board, seven pieces with wall kicks, a ghost piece, a next-piece preview, line-clear scoring, levels that speed the falling piece up, pause/restart, and a best score kept in `localStorage`.
 - **Cops & Robbers.** Play the thief on a walled grid: collect every piece of loot to clear the level while the police hunt you down. They path around the walls toward you, each level sends one more, and three lives stand between you and game over.
 - **Per-game difficulty.** Difficulty is the game's own setting, chosen on its start screen and remembered per game: Easy / Normal / Hard start Tetris at level 1 / 3 / 5 and give Cops & Robbers 1 / 2 / 3 police; the level still rises as you play.
@@ -75,7 +75,7 @@ verify.mjs         runnable check (node verify.mjs) — wiring + both games' cor
 
 ### Adding a game
 
-`client.js` has a `GAMES` registry; an entry declares `{ id, nameKey, descKey, categoryKey, version, statusKey, thumb, thumbColor, render(t) }` and appears in the library automatically. `render` receives the translate function and returns the game's element. A new game also needs its strings added to the `zh` / `en` dictionaries registered at the top of `apply()`.
+`client.js` has a `GAMES` registry; an entry declares `{ id, nameKey, descKey, categoryKey, version, statusKey, thumb, thumbCell, thumbGap, render(t) }` and appears in the library automatically. `thumb` is a matrix of colours drawn as the card's picture — both shipped games build theirs from their own data (`tetrisThumb()` drops real pieces with `SHAPES`/`COLORS`, `chaseThumb()` draws `CHASE_MAP`), so the picture cannot drift from the game. `render` receives the translate function and returns the game's element. A new game also needs its strings added to the `zh` / `en` dictionaries registered at the top of `apply()`.
 
 ### Development
 
@@ -117,7 +117,7 @@ dsh plugin add github:stallenlu/dsh-game-center
 
 ### 功能
 
-- **一个列表管理游戏。** 面板本身就是游戏库：每款游戏一张卡片，带名称、分类、版本与状态，点开就在同一面板里游玩，不新开标签页或窗口。
+- **一个列表管理游戏。** 面板本身就是游戏库：每款游戏一张卡片，带一张由游戏本身生成的示意图、名称、分类、版本与状态，点开就在同一面板里游玩，不新开标签页或窗口。
 - **俄罗斯方块。** 10×20 棋盘、七种方块（含靠墙微调）、落点虚影、下一个方块预览、消行计分、等级越高落得越快、暂停/重开，最高分存在 `localStorage`。
 - **警察抓小偷。** 你扮演小偷，在有墙的棋盘上把赃物全部捡走即可过关，同时要躲开追捕的警察。警察会绕开墙走最短路线追你，每过一关多一个警察，你有三条命。
 - **每个游戏自己的难度。** 难度是游戏自身的设置，在各自的开始界面上选择、按游戏分别记住：简单 / 普通 / 困难分别让俄罗斯方块从第 1 / 3 / 5 级开始，并让警察抓小偷开局有 1 / 2 / 3 个警察；等级仍会随游玩继续上升。
@@ -158,7 +158,7 @@ verify.mjs         可运行自检（node verify.mjs）：接线 + 两款游戏�
 
 ### 增加小游戏
 
-`client.js` 里有一个 `GAMES` 注册表，一条记录声明 `{ id, nameKey, descKey, categoryKey, version, statusKey, thumb, thumbColor, render(t) }` 后会自动出现在游戏库中。`render` 收到翻译函数并返回游戏元素；新游戏还需要把文案加进 `apply()` 顶部注册的 `zh` / `en` 字典。
+`client.js` 里有一个 `GAMES` 注册表，一条记录声明 `{ id, nameKey, descKey, categoryKey, version, statusKey, thumb, thumbCell, thumbGap, render(t) }` 后会自动出现在游戏库中。`thumb` 是一张颜色矩阵，作为卡片上的示意图——两款游戏都直接用自己的数据生成（`tetrisThumb()` 用 `SHAPES`/`COLORS` 真的落方块，`chaseThumb()` 画的就是 `CHASE_MAP`），所以图不会和游戏本身走偏。`render` 收到翻译函数并返回游戏元素；新游戏还需要把文案加进 `apply()` 顶部注册的 `zh` / `en` 字典。
 
 ### 开发
 

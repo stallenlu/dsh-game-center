@@ -147,8 +147,8 @@ window.__ModuleLoader__.load({
       .gc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 16px; }
       .gc-card { display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 14px; background: var(--dsw-alias-bg-layer-1); transition: border-color .15s ease, transform .15s ease; }
       .gc-card:hover { border-color: var(--dsw-alias-brand-primary); transform: translateY(-2px); }
-      .gc-thumb { height: 104px; border-radius: 10px; background: var(--dsw-alias-bg-layer-2); display: flex; align-items: center; justify-content: center; gap: 3px; overflow: hidden; }
-      .gc-thumb-cell { width: 19px; height: 19px; border-radius: 3px; opacity: .95; }
+      .gc-thumb { height: 104px; border-radius: 10px; background: var(--dsw-alias-bg-layer-2); display: grid; place-content: center; overflow: hidden; }
+      .gc-thumb-cell { border-radius: 2px; opacity: .95; }
       .gc-thumb-cell.off { background: transparent; }
       .gc-card-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
       .gc-name { font-size: 16px; font-weight: 600; line-height: 22px; }
@@ -898,6 +898,34 @@ window.__ModuleLoader__.load({
      * ponytail: static in-bundle list; upgrade path: load from host storage
      * if games ever become installable without shipping a new bundle.
      * ------------------------------------------------------------------ */
+    // Card artwork is built from each game's own data, so the picture on the
+    // card cannot drift from what the game actually is.
+    function tetrisThumb() {
+      const board = emptyBoard();
+      const drop = (type, x) => {
+        const shape = SHAPES[type];
+        let y = 0;
+        while (!collides(board, shape, x, y + 1)) y += 1;
+        for (let r = 0; r < shape.length; r++) {
+          for (let c = 0; c < shape.length; c++) {
+            if (shape[r][c]) board[y + r][x + c] = COLORS[type];
+          }
+        }
+      };
+      drop('I', 0); drop('J', 4); drop('O', 7); drop('T', 3); drop('S', 6);
+      return board.slice(ROWS - 8);
+    }
+
+    function chaseThumb() {
+      const loot = new Set(CHASE_LOOT.map((p) => p[0] + ',' + p[1]));
+      return CHASE_MAP.map((row, y) => Array.from(row, (ch, x) => {
+        if (ch === '#') return '#f59e0b';
+        if (x === CHASE_THIEF_START.x && y === CHASE_THIEF_START.y) return '#f8fafc';
+        if (loot.has(x + ',' + y)) return '#fde68a';
+        return 0;
+      }));
+    }
+
     const GAMES = [
       {
         id: 'tetris',
@@ -906,13 +934,9 @@ window.__ModuleLoader__.load({
         categoryKey: 'category',
         version: 'v1.0',
         statusKey: 'status',
-        thumb: [
-          [0, 0, 0, 0, 0, 0],
-          [0, 0, 1, 1, 0, 0],
-          [0, 1, 1, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0],
-        ],
-        thumbColor: '#a855f7',
+        thumb: tetrisThumb(),
+        thumbCell: 11,
+        thumbGap: 1,
         render: (t) => h(TetrisGame, { t }),
       },
       {
@@ -922,30 +946,39 @@ window.__ModuleLoader__.load({
         categoryKey: 'categoryAction',
         version: 'v1.0',
         statusKey: 'status',
-        thumb: [
-          [0, 1, 1, 1, 1, 0],
-          [0, 0, 0, 0, 0, 0],
-          [1, 1, 0, 1, 1, 0],
-          [0, 0, 0, 0, 0, 1],
-        ],
-        thumbColor: '#f59e0b',
+        thumb: chaseThumb(),
+        thumbCell: 6,
+        thumbGap: 1,
         render: (t) => h(ChaseGame, { t }),
       },
     ];
 
+    // Draws a game.thumb matrix (falsy = empty, else a colour) as a grid, sized
+    // per game so a 15x13 maze and a 10x8 tetris board both fit the card.
     function GameThumb({ game }) {
+      const rows = game.thumb;
+      const cols = rows[0].length;
+      const cell = game.thumbCell || 19;
+      const gap = game.thumbGap === undefined ? 3 : game.thumbGap;
       const out = [];
-      for (let r = 0; r < game.thumb.length; r++) {
-        for (let c = 0; c < game.thumb[r].length; c++) {
-          const on = game.thumb[r][c];
-          out.push(h('div', {
-            key: r * 8 + c,
-            className: 'gc-thumb-cell' + (on ? '' : ' off'),
-            style: on ? { background: game.thumbColor, boxShadow: BLOCK_SHADE } : null,
-          }));
+      for (let r = 0; r < rows.length; r++) {
+        for (let c = 0; c < cols; c++) {
+          const v = rows[r][c];
+          const style = {
+            width: cell + 'px', height: cell + 'px',
+            borderRadius: Math.max(1, Math.min(3, Math.round(cell / 4))) + 'px',
+          };
+          if (v) {
+            style.background = v;
+            if (cell >= 10) style.boxShadow = BLOCK_SHADE;
+          }
+          out.push(h('div', { key: r * cols + c, className: 'gc-thumb-cell' + (v ? '' : ' off'), style }));
         }
       }
-      return h('div', { className: 'gc-thumb' }, out);
+      return h('div', {
+        className: 'gc-thumb',
+        style: { gridTemplateColumns: 'repeat(' + cols + ', ' + cell + 'px)', gap: gap + 'px' },
+      }, out);
     }
 
     function GameCard({ game, t, onPlay }) {

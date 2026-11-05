@@ -6,7 +6,7 @@ let src = fs.readFileSync(new URL('./client.js', import.meta.url), 'utf8');
 // Expose the pure helpers from inside the factory for assertions.
 const marker = "    return {\n      inject: ['slots', 'locale'],";
 assert.ok(src.includes(marker), 'factory return marker not found');
-src = src.replace(marker, "    globalThis.__GC__ = { COLS, ROWS, SHAPES, rotateShape, emptyBoard, makePiece, collides, merge, clearLines, initialState, step, move, softDrop, rotate, hardDrop, ghostY, lockAndSpawn, CHASE_COLS, CHASE_ROWS, CHASE_WALL, CHASE_LOOT, CHASE_THIEF_START, CHASE_COP_STARTS, chaseWalkable, chaseLevel, chaseStep, chaseInitial, chaseReset, chaseTick };\n" + marker);
+src = src.replace(marker, "    globalThis.__GC__ = { COLS, ROWS, SHAPES, rotateShape, emptyBoard, makePiece, collides, merge, clearLines, initialState, step, move, softDrop, rotate, hardDrop, ghostY, lockAndSpawn, CHASE_COLS, CHASE_ROWS, CHASE_WALL, CHASE_LOOT, CHASE_THIEF_START, CHASE_COP_STARTS, chaseWalkable, chaseLevel, chaseStep, chaseInitial, chaseReset, chaseTick, GAMES };\n" + marker);
 
 const React = {
   createElement: () => ({}),
@@ -173,5 +173,28 @@ dead = G.chaseTick(dead);
 assert.equal(dead.lives, 0); assert.equal(dead.over, true, 'the last life ends the run');
 const frozen = { ...G.chaseInitial('normal'), started: true, paused: true };
 assert.equal(G.chaseTick(frozen), frozen, 'a paused tick is a no-op');
+
+// --- card artwork: each picture is built from the game's own data ---
+assert.equal(G.GAMES.length, 2, 'two games registered');
+for (const game of G.GAMES) {
+  const cols = game.thumb[0].length;
+  assert.ok(cols > 1 && game.thumb.length > 1, game.id + ': the picture is a grid');
+  for (const row of game.thumb) assert.equal(row.length, cols, game.id + ': rows are equal width');
+  assert.ok(game.thumb.some((row) => row.some(Boolean)), game.id + ': the picture is not blank');
+  for (const row of game.thumb) {
+    for (const v of row) {
+      if (v) assert.match(String(v), /^#[0-9a-f]{6}$/i, game.id + ': cells hold colours');
+    }
+  }
+}
+const tetrisArt = G.GAMES.find((g) => g.id === 'tetris').thumb;
+const tetrisFloor = tetrisArt[tetrisArt.length - 1].filter(Boolean).length;
+assert.ok(tetrisFloor >= G.COLS - 1, 'the tetris picture rests its pieces on the floor');
+assert.ok(new Set(tetrisArt.flat().filter(Boolean)).size >= 3, 'the tetris picture uses the real piece colours');
+const chaseArt = G.GAMES.find((g) => g.id === 'chase').thumb;
+assert.equal(chaseArt.length, G.CHASE_ROWS, 'the chase picture is the real map height');
+assert.equal(chaseArt[0].length, G.CHASE_COLS, 'the chase picture is the real map width');
+assert.ok(chaseArt[0].every(Boolean) && chaseArt[chaseArt.length - 1].every(Boolean), 'the chase picture keeps its wall border');
+assert.ok(chaseArt[G.CHASE_THIEF_START.y][G.CHASE_THIEF_START.x], 'the chase picture marks the thief');
 
 console.log('game-center verify: ALL OK (wiring + ' + registrations.length + ' slots + 2 games)');
