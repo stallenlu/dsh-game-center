@@ -137,8 +137,9 @@ window.__ModuleLoader__.load({
       .gc-switch[aria-checked="true"]::after { transform: translateX(16px); }
       .gc-settings-reset { margin-top: 12px; }
       .gc-bundle-config { display: flex; flex-direction: column; gap: 4px; }
-      .gc-set-block + .gc-set-block { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--dsw-alias-border-l2); }
-      .gc-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px; margin-top: 10px; border-radius: 8px; background: var(--dsw-alias-interactive-bg-hover); }
+      .gc-diff { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+      .gc-diff-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--dsw-alias-label-secondary); }
+      .gc-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px; border-radius: 8px; background: var(--dsw-alias-interactive-bg-hover); }
       .gc-seg-btn { appearance: none; border: 0; border-radius: 6px; padding: 5px 10px; background: transparent; color: var(--dsw-alias-label-secondary); font: inherit; font-size: 12px; line-height: 18px; cursor: pointer; white-space: nowrap; transition: color .12s ease, background .12s ease; }
       .gc-seg-btn:hover { color: var(--dsw-alias-label-primary); }
       .gc-seg-btn[aria-pressed="true"] { background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); box-shadow: 0 1px 2px rgba(0, 0, 0, .18); }
@@ -220,7 +221,9 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------ *
-     * Settings — placement + difficulty, persisted in localStorage.
+     * Settings — the panel's own setting (where its entry shows), persisted
+     * in localStorage. Difficulty is NOT here: it belongs to each game and is
+     * stored per game id below.
      * ------------------------------------------------------------------ */
     // Difficulty sets the starting level (the level still rises as you play) and,
     // for the chase, how many police start on the board, how fast they step
@@ -242,13 +245,10 @@ window.__ModuleLoader__.load({
         const raw = window.localStorage.getItem(SETTINGS_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          return {
-            sidebar: parsed.sidebar !== false,
-            difficulty: DIFFICULTIES.some((d) => d.id === parsed.difficulty) ? parsed.difficulty : 'normal',
-          };
+          return { sidebar: parsed.sidebar !== false };
         }
       } catch (e) { /* private mode or bad json — fall through to default */ }
-      return { sidebar: true, difficulty: 'normal' };
+      return { sidebar: true };
     }
     function getSettings() {
       if (!settings) settings = loadSettings();
@@ -267,6 +267,30 @@ window.__ModuleLoader__.load({
       const [s, setS] = useState(getSettings);
       useEffect(() => subscribeSettings(setS), []);
       return s;
+    }
+
+    // Difficulty is each game's own property: stored per game id, chosen on that
+    // game's own screen, and defaulted per game rather than by the panel.
+    const DIFFICULTY_KEY = 'gc-difficulty';
+    let difficulties = null;
+    function getDifficulty(gameId) {
+      if (!difficulties) {
+        try {
+          const parsed = JSON.parse(window.localStorage.getItem(DIFFICULTY_KEY) || '{}');
+          difficulties = parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (e) { difficulties = {}; }
+      }
+      const id = difficulties[gameId];
+      return DIFFICULTIES.some((d) => d.id === id) ? id : 'normal';
+    }
+    function setDifficulty(gameId, id) {
+      const next = { ...difficulties, [gameId]: id };
+      difficulties = next;
+      try { window.localStorage.setItem(DIFFICULTY_KEY, JSON.stringify(next)); } catch (e) { /* private mode */ }
+    }
+    function useDifficulty(gameId) {
+      const [value, setValue] = useState(() => getDifficulty(gameId));
+      return [value, (id) => { setDifficulty(gameId, id); setValue(id); }];
     }
 
     /* ------------------------------------------------------------------ *
@@ -482,34 +506,39 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'gc-controls' }, cells);
     }
 
-    // Shared by the in-panel gear popover and this bundle's page in the plugin manager.
+    // A game's own difficulty selector, shown on that game's start screen.
+    function DifficultyPicker({ t, value, onChange }) {
+      return h('div', { className: 'gc-diff' },
+        h('div', { className: 'gc-diff-label' }, t('difficulty')),
+        h('div', { className: 'gc-seg', role: 'group', 'aria-label': t('difficulty') },
+          DIFFICULTIES.map((d) => h('button', {
+            key: d.id, className: 'gc-seg-btn', type: 'button',
+            'aria-pressed': value === d.id,
+            onClick: () => onChange(d.id),
+          }, t(d.labelKey)))));
+    }
+
+    // Shared by the in-panel gear popover and this bundle's page in the plugin
+    // manager. Only the panel's own settings belong here — a game's difficulty
+    // is picked on that game's screen, not from the panel.
     function SettingsBody({ t }) {
       const settings = useSettings();
-      const diff = settings.difficulty || 'normal';
       return h('div', { className: 'gc-set-body' },
-        h('div', { className: 'gc-set-block' },
-          h('div', { className: 'gc-setting-row' },
-            h('span', { className: 'gc-setting-label' }, t('sidebarShow')),
-            h('button', {
-              className: 'gc-switch', type: 'button', role: 'switch',
-              'aria-checked': settings.sidebar, 'aria-label': t('sidebarShow'),
-              onClick: () => setSettings({ sidebar: !settings.sidebar }),
-            })),
-          h('div', { className: 'gc-setting-hint' }, t('sidebarShowHint'))),
-        h('div', { className: 'gc-set-block' },
-          h('div', { className: 'gc-setting-label' }, t('difficulty')),
-          h('div', { className: 'gc-seg', role: 'group', 'aria-label': t('difficulty') },
-            DIFFICULTIES.map((d) => h('button', {
-              key: d.id, className: 'gc-seg-btn', type: 'button',
-              'aria-pressed': diff === d.id,
-              onClick: () => setSettings({ difficulty: d.id }),
-            }, t(d.labelKey))))),
+        h('div', { className: 'gc-setting-row' },
+          h('span', { className: 'gc-setting-label' }, t('sidebarShow')),
+          h('button', {
+            className: 'gc-switch', type: 'button', role: 'switch',
+            'aria-checked': settings.sidebar, 'aria-label': t('sidebarShow'),
+            onClick: () => setSettings({ sidebar: !settings.sidebar }),
+          })),
+        h('div', { className: 'gc-setting-hint' }, t('sidebarShowHint')),
         h('div', { className: 'gc-settings-reset' },
-          h('button', { className: 'gc-btn ghost small', type: 'button', onClick: () => setSettings({ sidebar: true, difficulty: 'normal' }) }, t('reset'))));
+          h('button', { className: 'gc-btn ghost small', type: 'button', onClick: () => setSettings({ sidebar: true }) }, t('reset'))));
     }
 
     function TetrisGame({ t }) {
       const [s, setS] = useState(initialState);
+      const [difficulty, setDifficultyValue] = useDifficulty('tetris');
       const [best, setBest] = useState(() => {
         try { return Number(window.localStorage.getItem('gc-tetris-best')) || 0; } catch (e) { return 0; }
       });
@@ -551,17 +580,21 @@ window.__ModuleLoader__.load({
         return () => window.removeEventListener('keydown', onKey);
       }, []);
 
-      const start = () => setS({ ...initialState(levelForDifficulty(getSettings().difficulty)), started: true });
+      const start = () => setS({ ...initialState(levelForDifficulty(difficulty)), started: true });
+      // Back to the start screen, so the difficulty is always reachable.
+      const reset = () => setS(initialState());
       let overlay = null;
       if (!s.started) {
         overlay = h('div', { className: 'gc-overlay' },
           h('div', { className: 'gc-overlay-title' }, t('tetris')),
           h(Controls, { t }),
+          h(DifficultyPicker, { t, value: difficulty, onChange: setDifficultyValue }),
           h('button', { className: 'gc-btn', type: 'button', onClick: start }, t('start')));
       } else if (s.over) {
         overlay = h('div', { className: 'gc-overlay' },
           h('div', { className: 'gc-overlay-title' }, t('gameOver')),
           h('div', { className: 'gc-overlay-sub' }, t('finalScore') + ': ' + s.score),
+          h(DifficultyPicker, { t, value: difficulty, onChange: setDifficultyValue }),
           h('button', { className: 'gc-btn', type: 'button', onClick: start }, t('newGame')));
       } else if (s.paused) {
         overlay = h('div', { className: 'gc-overlay' },
@@ -590,7 +623,7 @@ window.__ModuleLoader__.load({
               disabled: !s.started || s.over,
               onClick: () => setS((v) => ({ ...v, paused: !v.paused })),
             }, s.paused ? t('resume') : t('pause')),
-            h('button', { className: 'gc-btn ghost small', type: 'button', onClick: start }, t('restart')))));
+            h('button', { className: 'gc-btn ghost small', type: 'button', onClick: reset }, t('restart')))));
     }
 
     /* ------------------------------------------------------------------ *
@@ -765,7 +798,8 @@ window.__ModuleLoader__.load({
     ];
 
     function ChaseGame({ t }) {
-      const [s, setS] = useState(() => chaseInitial(getSettings().difficulty));
+      const [difficulty, setDifficultyValue] = useDifficulty('chase');
+      const [s, setS] = useState(() => chaseInitial(getDifficulty('chase')));
       const [best, setBest] = useState(() => {
         try { return Number(window.localStorage.getItem('gc-chase-best')) || 0; } catch (e) { return 0; }
       });
@@ -802,17 +836,21 @@ window.__ModuleLoader__.load({
         return () => window.removeEventListener('keydown', onKey);
       }, []);
 
-      const start = () => setS({ ...chaseInitial(getSettings().difficulty), started: true });
+      const start = () => setS({ ...chaseInitial(difficulty), started: true });
+      // Back to the start screen, so the difficulty is always reachable.
+      const reset = () => setS(chaseInitial(difficulty));
       let overlay = null;
       if (!s.started) {
         overlay = h('div', { className: 'gc-overlay' },
           h('div', { className: 'gc-overlay-title' }, t('chase')),
           h(Controls, { t, rows: chaseControlRows(t) }),
+          h(DifficultyPicker, { t, value: difficulty, onChange: setDifficultyValue }),
           h('button', { className: 'gc-btn', type: 'button', onClick: start }, t('start')));
       } else if (s.over) {
         overlay = h('div', { className: 'gc-overlay' },
           h('div', { className: 'gc-overlay-title' }, t('gameOver')),
           h('div', { className: 'gc-overlay-sub' }, t('finalScore') + ': ' + s.score),
+          h(DifficultyPicker, { t, value: difficulty, onChange: setDifficultyValue }),
           h('button', { className: 'gc-btn', type: 'button', onClick: start }, t('newGame')));
       } else if (s.paused) {
         overlay = h('div', { className: 'gc-overlay' },
@@ -852,7 +890,7 @@ window.__ModuleLoader__.load({
               disabled: !s.started || s.over,
               onClick: () => setS((v) => ({ ...v, paused: !v.paused })),
             }, s.paused ? t('resume') : t('pause')),
-            h('button', { className: 'gc-btn ghost small', type: 'button', onClick: start }, t('restart')))));
+            h('button', { className: 'gc-btn ghost small', type: 'button', onClick: reset }, t('restart')))));
     }
 
     /* ------------------------------------------------------------------ *
