@@ -2,7 +2,7 @@
 
 [English](#english) | [中文](#中文)
 
-![version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![version](https://img.shields.io/badge/version-1.0.1-blue.svg)
 ![npm](https://img.shields.io/npm/v/dsh-game-center?label=npm&color=cb3837)
 ![DSH](https://img.shields.io/badge/DSH-0.2.1--rc.5-blueviolet.svg)
 ![license](https://img.shields.io/badge/license-MIT-green.svg)
@@ -34,7 +34,7 @@ It is also published through three channels you can install from directly:
 | Channel | Command | Notes |
 | --- | --- | --- |
 | dshmarket / Discover | search **Game Center** | one-click; the catalog entry lives in awesome-dsh-plugin |
-| npm | `dsh plugin --profile web add dsh-game-center` | prebuilt `dsh-game-center@1.0.0`; no build scripts, so no `allowBuilds` prompt |
+| npm | `dsh plugin --profile web add dsh-game-center` | prebuilt `dsh-game-center@1.0.1`; no build scripts, so no `allowBuilds` prompt |
 | GitHub Release tarball | `dsh plugin --profile web add "https://github.com/stallenlu/dsh-game-center/releases/latest/download/dsh-game-center.tgz"` | prebuilt; the asset name carries no version, so the URL keeps working after upgrades |
 | Git source | `dsh plugin --profile web add github:stallenlu/dsh-game-center` | always the current `main`; a code push needs no PR |
 
@@ -104,8 +104,8 @@ The catalog entry lives in [awesome-dsh-plugin](https://github.com/awesome-dsh-p
 
 | Channel | Where | How an update reaches users |
 | --- | --- | --- |
-| npm | [`dsh-game-center@1.0.0`](https://www.npmjs.com/package/dsh-game-center) on registry.npmjs.org | `npm version patch && npm publish`; the catalog's nightly `probe-npm.mjs` checks that `repository` points back here and picks up the new version automatically — no PR, and update detection switches to version numbers |
-| GitHub Release | [`v1.0.0`](https://github.com/stallenlu/dsh-game-center/releases/tag/v1.0.0) with asset `dsh-game-center.tgz` | publish a new Release keeping the **same** asset name, so `releases/latest/download/dsh-game-center.tgz` keeps resolving. Never put the version in the asset name — the permanent URL would 404 on the next release |
+| npm | [`dsh-game-center@1.0.1`](https://www.npmjs.com/package/dsh-game-center) on registry.npmjs.org | `npm version patch && npm publish`; the catalog's nightly `probe-npm.mjs` checks that `repository` points back here and picks up the new version automatically — no PR, and update detection switches to version numbers |
+| GitHub Release | [`v1.0.1`](https://github.com/stallenlu/dsh-game-center/releases/tag/v1.0.1) with asset `dsh-game-center.tgz` | publish a new Release keeping the **same** asset name, so `releases/latest/download/dsh-game-center.tgz` keeps resolving. Never put the version in the asset name — the permanent URL would 404 on the next release |
 | Git source | `main` | just `git push`; installs pinned to a commit see it on the next update check — no PR, no wait |
 
 `installTargetFor()` prefers **npm → release tarball → git source**. Once the catalog auto-collects the npm package, npm becomes the default install command and the tarball stays as a fallback (and as the site's alternate command). A `tarball:` line in the catalog YAML (added through a catalog PR) is what makes the prebuilt archive visible there; `npm:` is deliberately not a valid YAML key — that mapping is auto-collected, never hand-written.
@@ -148,7 +148,7 @@ MIT
 | 渠道 | 命令 | 说明 |
 | --- | --- | --- |
 | dshmarket / 发现 | 搜索**游戏中心** | 一键安装；目录条目维护在 awesome-dsh-plugin |
-| npm | `dsh plugin --profile web add dsh-game-center` | 预构建包 `dsh-game-center@1.0.0`；无构建脚本，不会弹 `allowBuilds` 授权 |
+| npm | `dsh plugin --profile web add dsh-game-center` | 预构建包 `dsh-game-center@1.0.1`；无构建脚本，不会弹 `allowBuilds` 授权 |
 | GitHub Release tarball | `dsh plugin --profile web add "https://github.com/stallenlu/dsh-game-center/releases/latest/download/dsh-game-center.tgz"` | 预构建；资产名不含版本号，升级后链接仍有效 |
 | Git 源码 | `dsh plugin --profile web add github:stallenlu/dsh-game-center` | 始终是 `main` 最新代码；推送代码后无需提 PR |
 
@@ -218,8 +218,8 @@ node verify.mjs
 
 | 渠道 | 发布位置 | 更新如何到达用户 |
 | --- | --- | --- |
-| npm | registry.npmjs.org 上的 [`dsh-game-center@1.0.0`](https://www.npmjs.com/package/dsh-game-center) | `npm version patch && npm publish`；目录的 nightly `probe-npm.mjs` 校验 `repository` 指回本仓库后自动采集新版本——无需提 PR，更新检测改按版本号 |
-| GitHub Release | [`v1.0.0`](https://github.com/stallenlu/dsh-game-center/releases/tag/v1.0.0)，附资产 `dsh-game-center.tgz` | 发布新 Release 时保持**同名**资产，`releases/latest/download/dsh-game-center.tgz` 会一直可用；资产名不要带版本号，否则下次发版永久链 404 |
+| npm | registry.npmjs.org 上的 [`dsh-game-center@1.0.1`](https://www.npmjs.com/package/dsh-game-center) | `npm version patch && npm publish`；目录的 nightly `probe-npm.mjs` 校验 `repository` 指回本仓库后自动采集新版本——无需提 PR，更新检测改按版本号 |
+| GitHub Release | [`v1.0.1`](https://github.com/stallenlu/dsh-game-center/releases/tag/v1.0.1)，附资产 `dsh-game-center.tgz` | 发布新 Release 时保持**同名**资产，`releases/latest/download/dsh-game-center.tgz` 会一直可用；资产名不要带版本号，否则下次发版永久链 404 |
 | Git 源码 | `main` | 直接 `git push`；按 commit 钉住的安装会在下次检查更新时看到——无需 PR、无需等待 |
 
 `installTargetFor()` 的优先级是 **npm → Release tarball → Git 源码**：一旦目录自动采集到 npm 包，npm 就成为默认安装命令，tarball 退为兜底（以及站点上的备选命令）。目录 YAML 里的 `tarball:` 行（通过给目录提 PR 添加）让预构建包在站点可见；`npm:` 不是合法 YAML 键，该映射由脚本自动采集，不能手写。
