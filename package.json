@@ -2,7 +2,7 @@
   "name": "dsh-game-center",
   "version": "1.0.0",
   "type": "module",
-  "description": "Game Center for DSH: a panel that manages every mini-game built here and lets you play them. Ships with Tetris.",
+  "description": "Game Center for DSH: a panel that manages every mini-game built here and lets you play them. Ships with Tetris and Cops & Robbers.",
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
