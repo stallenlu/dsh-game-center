@@ -7,6 +7,8 @@ window.__ModuleLoader__.load({
 
     const NS = 'gameCenter';
     const PANEL_ID = 'game-center';
+    // Single source for the version shown on game cards. Bump together with package.json.
+    const VERSION = 'v1.2.0';
 
     const zh = {
       open: '游戏中心',
@@ -48,11 +50,13 @@ window.__ModuleLoader__.load({
       categoryAction: '动作',
       lives: '命数',
       loot: '剩余赃物',
-      version: 'v1.0',
+      combo: '连击',
+      tspins: 'T 旋',
+      stun: '眩晕',
+      stunHint: '捡到闪光弹可以短暂定住全部警察。',
       status: '可游玩',
       empty: '后续开发的小游戏会自动出现在这里。',
       best: '最高分',
-      howTo: '玩法',
       settings: '插件设置',
       settingsTitle: '设置',
       sidebarShow: '在侧边栏显示入口',
@@ -99,11 +103,13 @@ window.__ModuleLoader__.load({
       categoryAction: 'Action',
       lives: 'Lives',
       loot: 'Loot left',
-      version: 'v1.0',
+      combo: 'Combo',
+      tspins: 'T-spins',
+      stun: 'Stun',
+      stunHint: 'Pick up a flashbang to freeze every cop for a moment.',
       status: 'Ready',
       empty: 'More mini-games will show up here as they are added.',
       best: 'Best',
-      howTo: 'How to play',
       settings: 'Plugin Settings',
       settingsTitle: 'Settings',
       sidebarShow: 'Show entry in sidebar',
@@ -150,6 +156,7 @@ window.__ModuleLoader__.load({
       .gc-thumb { height: 104px; border-radius: 10px; background: var(--dsw-alias-bg-layer-2); display: grid; place-content: center; overflow: hidden; }
       .gc-thumb-cell { border-radius: 2px; opacity: .95; }
       .gc-thumb-cell.off { background: transparent; }
+      .gc-thumb-empty { height: 104px; border-radius: 10px; background: var(--dsw-alias-bg-layer-2); }
       .gc-card-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
       .gc-name { font-size: 16px; font-weight: 600; line-height: 22px; }
       .gc-badge { font-size: 11px; line-height: 16px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); color: var(--dsw-alias-label-secondary); }
@@ -190,6 +197,7 @@ window.__ModuleLoader__.load({
       .gc-chase-board { display: grid; grid-template-columns: repeat(15, 28px); grid-auto-rows: 28px; gap: 1px; padding: 6px; background: var(--dsw-alias-bg-layer-2); border: 1px solid var(--dsw-alias-border-l1); border-radius: 12px; }
       .gc-chase-cell { display: flex; align-items: center; justify-content: center; border-radius: 3px; background: var(--dsw-alias-bg-layer-1); font-size: 17px; line-height: 1; user-select: none; }
       .gc-chase-cell.wall { background: var(--dsw-alias-border-l3); }
+      .gc-chase-cell.frozen { opacity: .45; }
     `;
 
     function insertStyles(css) {
@@ -310,6 +318,13 @@ window.__ModuleLoader__.load({
     const COLORS = { I: '#38bdf8', J: '#3b82f6', L: '#f59e0b', O: '#facc15', S: '#22c55e', T: '#a855f7', Z: '#ef4444' };
     const TYPES = Object.keys(SHAPES);
     const LINE_SCORE = [0, 100, 300, 500, 800];
+    // A T-spin is scored from the same clear count but at a higher rate: the
+    // rotation that squeezes the piece into a gap is the hard part, so it pays
+    // more than a plain clear. Index 0 is a T-spin that cleared nothing.
+    const TSPIN_SCORE = [400, 800, 1200, 1600];
+    // Each clear in an unbroken run pays a little more; the run is worth 0 for
+    // its first clear and grows from there.
+    const COMBO_STEP = 50;
     const BLOCK_SHADE = 'inset 0 -3px 0 rgba(0,0,0,.22), inset 0 2px 0 rgba(255,255,255,.28)';
 
     function rotateShape(m) {
@@ -321,8 +336,36 @@ window.__ModuleLoader__.load({
     function emptyBoard() {
       return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
     }
-    function randomType() {
-      return TYPES[Math.floor(Math.random() * TYPES.length)];
+    // 7-bag: every bag holds each of the seven pieces once, so the longest wait
+    // for a piece is bounded and the board cannot be flooded by one shape.
+    // A fresh bag never opens with the piece that just landed, which removes the
+    // only repeat a plain bag still allows.
+    function shuffledBag(avoid) {
+      const bag = TYPES.slice();
+      for (let i = bag.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const t = bag[i]; bag[i] = bag[j]; bag[j] = t;
+      }
+      if (bag[0] === avoid) {
+        const k = 1 + Math.floor(Math.random() * (bag.length - 1));
+        const t = bag[0]; bag[0] = bag[k]; bag[k] = t;
+      }
+      return bag;
+    }
+    // Draw the next piece, refilling the bag when it runs out.
+    function drawType(bag, avoid) {
+      const pool = Array.isArray(bag) && bag.length ? bag : shuffledBag(avoid);
+      return { type: pool[0], bag: pool.slice(1) };
+    }
+    // A piece that has landed may still be slid or turned for this long…
+    const LOCK_DELAY = 500;
+    // …and every such nudge re-arms the timer, up to this many times.
+    const LOCK_RESETS = 15;
+    // Any successful nudge on the ground restarts the lock timer, a bounded
+    // number of times so a piece cannot be hovered forever.
+    function rearm(s) {
+      if (!s.groundedAt || s.lockResets >= LOCK_RESETS) return s;
+      return { ...s, groundedAt: Date.now(), lockResets: s.lockResets + 1 };
     }
     function makePiece(type) {
       const shape = SHAPES[type].map((row) => row.slice());
@@ -361,46 +404,101 @@ window.__ModuleLoader__.load({
       while (kept.length < ROWS) kept.unshift(Array(COLS).fill(null));
       return { board: kept, cleared };
     }
+    // A T-spin is a T piece that was turned into its slot and then locked
+    // without being slid: three of the four corners around the piece's centre
+    // are blocked. It is checked at lock time, because only then is the final
+    // position of the piece known.
+    function isTSpin(board, piece, rotated) {
+      if (!rotated || piece.type !== 'T') return false;
+      const cx = piece.x + 1;
+      const cy = piece.y + 1;
+      const blocked = (x, y) => x < 0 || x >= COLS || y < 0 || y >= ROWS || Boolean(board[y][x]);
+      let corners = 0;
+      if (blocked(cx - 1, cy - 1)) corners += 1;
+      if (blocked(cx + 1, cy - 1)) corners += 1;
+      if (blocked(cx - 1, cy + 1)) corners += 1;
+      if (blocked(cx + 1, cy + 1)) corners += 1;
+      return corners >= 3;
+    }
     function initialState(startLevel) {
+      const first = drawType([], null);
+      const second = drawType(first.bag, first.type);
+      const level = startLevel || 1;
       return {
-        board: emptyBoard(), piece: makePiece(randomType()), next: makePiece(randomType()),
-        score: 0, lines: 0, level: startLevel || 1, over: false, paused: false, started: false,
+        board: emptyBoard(), piece: makePiece(first.type), next: makePiece(second.type),
+        bag: second.bag, startLevel: level,
+        score: 0, lines: 0, level, over: false, paused: false, started: false,
+        groundedAt: 0, lockResets: 0,
+        rotated: false, combo: 0, tspins: 0,
       };
+    }
+    // The piece has landed: hold it for the lock delay, then commit it. A hard
+    // drop skips the wait and commits at once.
+    function lockOrWait(s) {
+      if (!s.groundedAt) return { ...s, groundedAt: Date.now(), lockResets: 0 };
+      if (Date.now() - s.groundedAt < LOCK_DELAY) return s;
+      return lockAndSpawn(s, merge(s.board, s.piece));
     }
     function lockAndSpawn(s, boardWithPiece) {
       const { board, cleared } = clearLines(boardWithPiece);
       const lines = s.lines + cleared;
-      const level = Math.floor(lines / 10) + 1;
-      const score = s.score + LINE_SCORE[cleared] * s.level;
+      // The chosen difficulty sets the *starting* level; clearing lines raises it
+      // from there. Recomputing from lines alone used to throw the start away.
+      const level = (s.startLevel || 1) + Math.floor(lines / 10);
+      // A T-spin pays the T-spin table instead of the plain one; a clear in an
+      // unbroken run of clears adds a combo bonus on top of either.
+      const tspin = isTSpin(s.board, s.piece, s.rotated);
+      const base = tspin
+        ? TSPIN_SCORE[Math.min(cleared, TSPIN_SCORE.length - 1)]
+        : LINE_SCORE[cleared];
+      const combo = cleared ? (s.combo || 0) + 1 : 0;
+      const bonus = combo > 1 ? COMBO_STEP * (combo - 1) : 0;
+      const score = s.score + (base + bonus) * s.level;
       const piece = s.next;
+      const draw = drawType(s.bag, piece.type);
       const over = collides(board, piece.shape, piece.x, piece.y);
-      return { ...s, board, piece, next: makePiece(randomType()), score, lines, level, over };
+      return {
+        ...s, board, piece, next: makePiece(draw.type), bag: draw.bag,
+        score, lines, level, over, groundedAt: 0, lockResets: 0,
+        rotated: false, combo, tspins: (s.tspins || 0) + (tspin ? 1 : 0),
+      };
     }
     function step(s) {
       if (!s.started || s.over || s.paused) return s;
       if (!collides(s.board, s.piece.shape, s.piece.x, s.piece.y + 1)) {
-        return { ...s, piece: { ...s.piece, y: s.piece.y + 1 } };
+        const piece = { ...s.piece, y: s.piece.y + 1 };
+        const landed = collides(s.board, piece.shape, piece.x, piece.y + 1);
+        // Falling or sliding after a turn means the piece was not turned into
+        // its slot, so the T-spin flag only survives a piece that stays put.
+        return { ...s, piece, groundedAt: landed ? Date.now() : 0, lockResets: 0, rotated: false };
       }
-      return lockAndSpawn(s, merge(s.board, s.piece));
+      return lockOrWait(s);
     }
     function move(s, dx) {
       if (!s.started || s.over || s.paused) return s;
       if (collides(s.board, s.piece.shape, s.piece.x + dx, s.piece.y)) return s;
-      return { ...s, piece: { ...s.piece, x: s.piece.x + dx } };
+      return rearm({ ...s, piece: { ...s.piece, x: s.piece.x + dx }, rotated: false });
     }
     function softDrop(s) {
       if (!s.started || s.over || s.paused) return s;
       if (!collides(s.board, s.piece.shape, s.piece.x, s.piece.y + 1)) {
-        return { ...s, piece: { ...s.piece, y: s.piece.y + 1 }, score: s.score + 1 };
+        return { ...s, piece: { ...s.piece, y: s.piece.y + 1 }, score: s.score + 1, rotated: false };
       }
-      return lockAndSpawn(s, merge(s.board, s.piece));
+      return lockOrWait(s);
     }
+    // Wall kicks, tried in order: in place, sideways off a wall, then one row up
+    // off the floor. The upward ones are what let a vertical bar turn once it is
+    // resting — with side kicks alone that rotation is simply refused. They are
+    // capped at a single row so a piece cannot be rotated upward for free.
+    const ROTATE_KICKS = [[0, 0], [-1, 0], [1, 0], [-2, 0], [2, 0], [0, -1], [-1, -1], [1, -1]];
     function rotate(s) {
       if (!s.started || s.over || s.paused) return s;
       const shape = rotateShape(s.piece.shape);
-      for (const dx of [0, -1, 1, -2, 2]) {
-        if (!collides(s.board, shape, s.piece.x + dx, s.piece.y)) {
-          return { ...s, piece: { ...s.piece, shape, x: s.piece.x + dx } };
+      for (const [dx, dy] of ROTATE_KICKS) {
+        if (!collides(s.board, shape, s.piece.x + dx, s.piece.y + dy)) {
+          // `rotated` is what makes a T-spin possible: the piece must be turned
+          // and then locked without being moved again.
+          return rearm({ ...s, piece: { ...s.piece, shape, x: s.piece.x + dx, y: s.piece.y + dy }, rotated: true });
         }
       }
       return s;
@@ -411,7 +509,12 @@ window.__ModuleLoader__.load({
       let dropped = 0;
       while (!collides(s.board, s.piece.shape, s.piece.x, y + 1)) { y++; dropped++; }
       const piece = { ...s.piece, y };
-      return lockAndSpawn({ ...s, score: s.score + dropped * 2 }, merge(s.board, piece));
+      // A hard drop that actually travels is a move, so it cancels the turn the
+      // same way gravity does; dropping an already resting piece keeps it.
+      return lockAndSpawn(
+        { ...s, score: s.score + dropped * 2, rotated: dropped === 0 ? s.rotated : false },
+        merge(s.board, piece),
+      );
     }
     function ghostY(s) {
       let y = s.piece.y;
@@ -544,6 +647,7 @@ window.__ModuleLoader__.load({
       });
       const sRef = useRef(s);
       sRef.current = s;
+      const rootRef = useRef(null);
 
       useEffect(() => {
         if (s.score > best) {
@@ -552,7 +656,10 @@ window.__ModuleLoader__.load({
         }
       }, [s.score, best]);
 
-      const speed = Math.max(90, 800 - (s.level - 1) * 70);
+      // Gravity keeps tightening with the level instead of flattening out at a
+      // floor after ~11 levels: a fixed 10% cut per level still reaches the
+      // 60ms floor, but only around level 25, so late levels stay distinguishable.
+      const speed = Math.max(60, Math.round(800 * Math.pow(0.9, s.level - 1)));
       useEffect(() => {
         if (!s.started || s.over || s.paused) return undefined;
         const id = setInterval(() => setS(step), speed);
@@ -561,6 +668,8 @@ window.__ModuleLoader__.load({
 
       useEffect(() => {
         const onKey = (e) => {
+          const root = rootRef.current;
+          if (!root || !root.contains(e.target)) return;
           const el = e.target;
           if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName || ''))) return;
           const cur = sRef.current;
@@ -580,7 +689,10 @@ window.__ModuleLoader__.load({
         return () => window.removeEventListener('keydown', onKey);
       }, []);
 
-      const start = () => setS({ ...initialState(levelForDifficulty(difficulty)), started: true });
+      const start = () => {
+        setS({ ...initialState(levelForDifficulty(difficulty)), started: true });
+        if (rootRef.current) rootRef.current.focus();
+      };
       // Back to the start screen, so the difficulty is always reachable.
       const reset = () => setS(initialState());
       let overlay = null;
@@ -602,7 +714,7 @@ window.__ModuleLoader__.load({
           h('button', { className: 'gc-btn', type: 'button', onClick: () => setS((v) => ({ ...v, paused: false })) }, t('resume')));
       }
 
-      return h('div', { className: 'gc-play' },
+      return h('div', { className: 'gc-play', ref: rootRef, tabIndex: -1 },
         h('div', { className: 'gc-board-wrap' }, h(Board, { s }), overlay),
         h('div', { className: 'gc-side' },
           h('div', { className: 'gc-panel' },
@@ -610,7 +722,9 @@ window.__ModuleLoader__.load({
             h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('score')), h('span', { className: 'gc-stat-value' }, s.score)),
             h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('best')), h('span', { className: 'gc-stat-value' }, best)),
             h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('lines')), h('span', { className: 'gc-stat-value' }, s.lines)),
-            h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('level')), h('span', { className: 'gc-stat-value' }, s.level))),
+            h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('level')), h('span', { className: 'gc-stat-value' }, s.level)),
+            h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('combo')), h('span', { className: 'gc-stat-value' }, s.combo || 0)),
+            h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('tspins')), h('span', { className: 'gc-stat-value' }, s.tspins || 0))),
           h('div', { className: 'gc-panel' },
             h('div', { className: 'gc-panel-title' }, t('next')),
             h(NextPreview, { piece: s.next })),
@@ -654,6 +768,11 @@ window.__ModuleLoader__.load({
     const CHASE_ROWS = CHASE_MAP.length;
     const CHASE_WALL = CHASE_MAP.map((row) => Array.from(row, (ch) => ch === '#'));
     const CHASE_LOOT = [[3, 3], [7, 3], [11, 3], [3, 9], [7, 6], [11, 9]];
+    // One flashbang per level, on a floor cell no loot and no spawn uses. It is
+    // the only way to break a tightening encirclement, so it is worth a detour.
+    const CHASE_STUN_CELL = { x: 7, y: 5 };
+    // How many player ticks the police stay frozen after a flashbang.
+    const CHASE_STUN_TICKS = 12;
     const CHASE_THIEF_START = { x: 7, y: 9 };
     const CHASE_COP_STARTS = [
       { x: 1, y: 1 }, { x: 13, y: 1 }, { x: 7, y: 1 },
@@ -671,12 +790,23 @@ window.__ModuleLoader__.load({
     }
 
     // Level N of the chase: how many police, how fast they step, how often.
+    // The clock decays by a fixed ratio instead of subtracting a flat 10ms, so
+    // it keeps tightening all the way to its floor (with the old straight-line
+    // drop the clock and the cop count both bottomed out around level 7 and
+    // every later level played identically).
+    //
+    // copEvery is floored at 2 on purpose: at 1 the police step on every single
+    // player tick, so a thief can never outrun them and the round ends in about
+    // half the ticks no matter how well it is played (measured: 27 vs 54 ticks
+    // of survival at level 10). Police may gain on the thief, never match it.
+    const CHASE_TICK_FLOOR = 90;
+    const CHASE_COP_EVERY_FLOOR = 2;
     function chaseLevel(difficulty, level) {
       const d = DIFFICULTIES.find((x) => x.id === difficulty) || DIFFICULTIES[1];
       return {
         cops: Math.min(CHASE_COP_STARTS.length, d.police + Math.floor(level / 2)),
-        tick: Math.max(90, d.tick - (level - 1) * 10),
-        copEvery: d.copEvery,
+        tick: Math.max(CHASE_TICK_FLOOR, Math.round(d.tick * Math.pow(0.94, level - 1))),
+        copEvery: Math.max(CHASE_COP_EVERY_FLOOR, d.copEvery - Math.floor((level - 1) / 4)),
       };
     }
 
@@ -719,11 +849,16 @@ window.__ModuleLoader__.load({
         dir: null,
         want: null,
         ticks: 0,
+        stun: 0,
         cops: CHASE_COP_STARTS.slice(0, cfg.cops).map((c) => ({ x: c.x, y: c.y })),
       };
     }
     function chaseRespawn(s) {
-      return { ...chaseReset(s), loot: CHASE_LOOT.map((p) => ({ x: p[0], y: p[1] })) };
+      return {
+        ...chaseReset(s),
+        loot: CHASE_LOOT.map((p) => ({ x: p[0], y: p[1] })),
+        item: { x: CHASE_STUN_CELL.x, y: CHASE_STUN_CELL.y },
+      };
     }
     function chaseInitial(difficulty) {
       return chaseRespawn({
@@ -761,8 +896,16 @@ window.__ModuleLoader__.load({
           return chaseRespawn(next);
         }
       }
+      // A flashbang freezes every cop for a few ticks — a way out of a corner
+      // once the net has closed, but it does not touch the loot or the clock.
+      if (next.item && next.item.x === thief.x && next.item.y === thief.y) {
+        next.item = null;
+        next.stun = CHASE_STUN_TICKS;
+        next.score = next.score + 50;
+      }
 
       if (next.cops.some((c) => c.x === thief.x && c.y === thief.y)) return chaseCaught(next);
+      if (next.stun > 0) return { ...next, stun: next.stun - 1 };
       if (next.ticks % cfg.copEvery !== 0) return next;
       next.cops = next.cops.map((cop) => chaseStep(cop, thief) || cop);
       if (next.cops.some((c) => c.x === thief.x && c.y === thief.y)) return chaseCaught(next);
@@ -774,18 +917,24 @@ window.__ModuleLoader__.load({
       const copAt = new Set(s.cops.map(key));
       const lootAt = new Set(s.loot.map(key));
       const thiefAt = key(s.thief);
+      const itemAt = s.item ? key(s.item) : -1;
+      // While stunned the police still hold their cells; the class dims them so
+      // the freeze is visible instead of looking like a bug.
+      const stunned = s.stun > 0;
       const cells = [];
       for (let r = 0; r < CHASE_ROWS; r++) {
         for (let c = 0; c < CHASE_COLS; c++) {
           const wall = CHASE_WALL[r][c];
           const k = r * CHASE_COLS + c;
           let glyph = null;
+          let extra = '';
           if (!wall) {
-            if (copAt.has(k)) glyph = '👮';
+            if (copAt.has(k)) { glyph = '👮'; if (stunned) extra = ' frozen'; }
             else if (k === thiefAt) glyph = '🥷';
             else if (lootAt.has(k)) glyph = '💰';
+            else if (k === itemAt) glyph = '💥';
           }
-          cells.push(h('div', { key: k, className: 'gc-chase-cell' + (wall ? ' wall' : '') }, glyph));
+          cells.push(h('div', { key: k, className: 'gc-chase-cell' + (wall ? ' wall' : '') + extra }, glyph));
         }
       }
       return h('div', { className: 'gc-chase-board' }, cells);
@@ -805,6 +954,7 @@ window.__ModuleLoader__.load({
       });
       const sRef = useRef(s);
       sRef.current = s;
+      const rootRef = useRef(null);
 
       useEffect(() => {
         if (s.score > best) {
@@ -822,6 +972,8 @@ window.__ModuleLoader__.load({
 
       useEffect(() => {
         const onKey = (e) => {
+          const root = rootRef.current;
+          if (!root || !root.contains(e.target)) return;
           const el = e.target;
           if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName || ''))) return;
           const cur = sRef.current;
@@ -836,7 +988,10 @@ window.__ModuleLoader__.load({
         return () => window.removeEventListener('keydown', onKey);
       }, []);
 
-      const start = () => setS({ ...chaseInitial(difficulty), started: true });
+      const start = () => {
+        setS({ ...chaseInitial(difficulty), started: true });
+        if (rootRef.current) rootRef.current.focus();
+      };
       // Back to the start screen, so the difficulty is always reachable.
       const reset = () => setS(chaseInitial(difficulty));
       let overlay = null;
@@ -844,6 +999,7 @@ window.__ModuleLoader__.load({
         overlay = h('div', { className: 'gc-overlay' },
           h('div', { className: 'gc-overlay-title' }, t('chase')),
           h(Controls, { t, rows: chaseControlRows(t) }),
+          h('div', { className: 'gc-overlay-sub' }, t('stunHint')),
           h(DifficultyPicker, { t, value: difficulty, onChange: setDifficultyValue }),
           h('button', { className: 'gc-btn', type: 'button', onClick: start }, t('start')));
       } else if (s.over) {
@@ -861,7 +1017,7 @@ window.__ModuleLoader__.load({
           }, t('resume')));
       }
 
-      return h('div', { className: 'gc-play' },
+      return h('div', { className: 'gc-play', ref: rootRef, tabIndex: -1 },
         h('div', { className: 'gc-board-wrap' }, h(ChaseBoard, { s }), overlay),
         h('div', { className: 'gc-side' },
           h('div', { className: 'gc-panel' },
@@ -880,7 +1036,10 @@ window.__ModuleLoader__.load({
               h('span', { className: 'gc-stat-value' }, s.lives)),
             h('div', { className: 'gc-stat' },
               h('span', { className: 'gc-stat-label' }, t('loot')),
-              h('span', { className: 'gc-stat-value' }, s.loot.length))),
+              h('span', { className: 'gc-stat-value' }, s.loot.length)),
+            h('div', { className: 'gc-stat' },
+              h('span', { className: 'gc-stat-label' }, t('stun')),
+              h('span', { className: 'gc-stat-value' }, s.stun > 0 ? s.stun : '—'))),
           h('div', { className: 'gc-panel' },
             h('div', { className: 'gc-panel-title' }, t('controls')),
             h(Controls, { t, rows: chaseControlRows(t) })),
@@ -894,9 +1053,9 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------ *
-     * Registry — one entry per mini-game. Adding a game = appending here.
-     * ponytail: static in-bundle list; upgrade path: load from host storage
-     * if games ever become installable without shipping a new bundle.
+     * Registry — one entry per mini-game. The built-ins are listed here; any
+     * other bundle loaded beside this one can append its own through the
+     * exported `registerGame` and this panel picks it up without a reload.
      * ------------------------------------------------------------------ */
     // Card artwork is built from each game's own data, so the picture on the
     // card cannot drift from what the game actually is.
@@ -932,7 +1091,7 @@ window.__ModuleLoader__.load({
         nameKey: 'tetris',
         descKey: 'tetrisDesc',
         categoryKey: 'category',
-        version: 'v1.0',
+        version: VERSION,
         statusKey: 'status',
         thumb: tetrisThumb(),
         thumbCell: 11,
@@ -944,7 +1103,7 @@ window.__ModuleLoader__.load({
         nameKey: 'chase',
         descKey: 'chaseDesc',
         categoryKey: 'categoryAction',
-        version: 'v1.0',
+        version: VERSION,
         statusKey: 'status',
         thumb: chaseThumb(),
         thumbCell: 6,
@@ -953,10 +1112,48 @@ window.__ModuleLoader__.load({
       },
     ];
 
+    // Games registered by other bundles. They are kept apart from the built-in
+    // list so a bad entry can never take the two shipped games down with it, and
+    // so the screens read from one array (`allGames()`).
+    const extraGames = [];
+    const gameListeners = new Set();
+    // A game entry needs, at minimum, a unique id and a render function; the
+    // thumb is optional and a plain badge is drawn when it is missing.
+    function registerGame(entry) {
+      if (!entry || typeof entry !== 'object') return () => {};
+      if (typeof entry.id !== 'string' || !entry.id) return () => {};
+      if (typeof entry.render !== 'function') return () => {};
+      if (GAMES.some((g) => g.id === entry.id) || extraGames.some((g) => g.id === entry.id)) return () => {};
+      extraGames.push(entry);
+      for (const fn of Array.from(gameListeners)) { try { fn(); } catch (e) { /* ignore listener errors */ } }
+      return () => {
+        const i = extraGames.indexOf(entry);
+        if (i < 0) return;
+        extraGames.splice(i, 1);
+        for (const fn of Array.from(gameListeners)) { try { fn(); } catch (e) { /* ignore */ } }
+      };
+    }
+    function allGames() {
+      return GAMES.concat(extraGames);
+    }
+    function subscribeGames(fn) {
+      gameListeners.add(fn);
+      return () => gameListeners.delete(fn);
+    }
+    function useGames() {
+      const [games, setGames] = useState(allGames);
+      useEffect(() => subscribeGames(() => setGames(allGames())), []);
+      return games;
+    }
+
     // Draws a game.thumb matrix (falsy = empty, else a colour) as a grid, sized
     // per game so a 15x13 maze and a 10x8 tetris board both fit the card.
     function GameThumb({ game }) {
       const rows = game.thumb;
+      // A game registered from outside may ship no artwork; the card still works.
+      if (!Array.isArray(rows) || !rows.length || !Array.isArray(rows[0])) {
+        return h('div', { className: 'gc-thumb gc-thumb-empty' });
+      }
       const cols = rows[0].length;
       const cell = game.thumbCell || 19;
       const gap = game.thumbGap === undefined ? 3 : game.thumbGap;
@@ -982,15 +1179,20 @@ window.__ModuleLoader__.load({
     }
 
     function GameCard({ game, t, onPlay }) {
+      // nameKey/descKey let a bundled game reuse the panel's own translations;
+      // a game registered from outside can carry plain `name`/`desc` strings.
+      const name = game.nameKey ? t(game.nameKey) : String(game.name || game.id);
+      const desc = game.descKey ? t(game.descKey) : String(game.desc || '');
+      const category = game.categoryKey ? t(game.categoryKey) : String(game.category || '');
       return h('div', { className: 'gc-card' },
         h(GameThumb, { game }),
         h('div', { className: 'gc-card-top' },
-          h('span', { className: 'gc-name' }, t(game.nameKey)),
-          h('span', { className: 'gc-badge' }, t(game.categoryKey)),
-          h('span', { className: 'gc-badge ready' }, t(game.statusKey))),
-        h('div', { className: 'gc-desc' }, t(game.descKey)),
+          h('span', { className: 'gc-name' }, name),
+          category ? h('span', { className: 'gc-badge' }, category) : null,
+          h('span', { className: 'gc-badge ready' }, game.statusKey ? t(game.statusKey) : t('status'))),
+        h('div', { className: 'gc-desc' }, desc),
         h('div', { className: 'gc-card-foot' },
-          h('span', { className: 'gc-meta' }, game.version),
+          h('span', { className: 'gc-meta' }, String(game.version || VERSION)),
           h('button', { className: 'gc-btn', type: 'button', onClick: onPlay }, t('play'))));
     }
 
@@ -998,13 +1200,14 @@ window.__ModuleLoader__.load({
       const t = useTranslate(locale);
       const [selected, setSelected] = useState(null);
       const [showSettings, setShowSettings] = useState(false);
-      const game = selected ? GAMES.find((g) => g.id === selected) : null;
+      const games = useGames();
+      const game = selected ? games.find((g) => g.id === selected) : null;
 
       if (game) {
         return h('div', { className: 'gc-root gc-play-root' },
           h('div', { className: 'gc-crumbs' },
             h('button', { className: 'gc-btn ghost small', type: 'button', onClick: () => setSelected(null) }, '← ' + t('backToGames')),
-            h('div', { className: 'gc-playing' }, t('nowPlaying'), h('b', null, t(game.nameKey)))),
+            h('div', { className: 'gc-playing' }, t('nowPlaying'), h('b', null, game.nameKey ? t(game.nameKey) : String(game.name || game.id)))),
           game.render(t));
       }
 
@@ -1021,7 +1224,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'gc-title' }, t('title')),
             h('div', { className: 'gc-sub' }, t('subtitle'))),
           h('div', { className: 'gc-head-actions' },
-            h('div', { className: 'gc-count' }, t('gameCount', { n: GAMES.length })),
+            h('div', { className: 'gc-count' }, t('gameCount', { n: games.length })),
             h('div', { className: 'gc-settings-wrap' },
               h('button', {
                 className: 'gc-settings-btn', type: 'button', 'aria-expanded': showSettings,
@@ -1030,7 +1233,7 @@ window.__ModuleLoader__.load({
               settingsPop))),
         h('div', { className: 'gc-section-title' }, t('games')),
         h('div', { className: 'gc-grid' },
-          GAMES.map((g) => h(GameCard, { key: g.id, game: g, t, onPlay: () => setSelected(g.id) }))),
+          games.map((g) => h(GameCard, { key: g.id, game: g, t, onPlay: () => setSelected(g.id) }))),
         h('div', { className: 'gc-empty' }, t('empty')));
     }
 
@@ -1054,6 +1257,11 @@ window.__ModuleLoader__.load({
 
     return {
       inject: ['slots', 'locale'],
+      // Games shipped by other bundles attach through this. It is deliberately a
+      // plain function on the module, not a slot: a game is data + a render
+      // function, and the panel owns the frame around it.
+      registerGame,
+      listGames: allGames,
       apply(ctx) {
         try {
           const locale = ctx.get('locale');

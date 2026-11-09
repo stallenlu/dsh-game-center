@@ -3,6 +3,11 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 let src = fs.readFileSync(new URL('./client.js', import.meta.url), 'utf8');
+// Version governance: the single display constant must track package.json.
+const pkgVersion = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
+const versionMatch = src.match(/const VERSION = 'v([\d.]+)'/);
+assert.ok(versionMatch, 'client.js is missing the VERSION constant');
+assert.equal(versionMatch[1], pkgVersion, 'client.js VERSION must match package.json version');
 // Expose the pure helpers from inside the factory for assertions.
 const marker = "    return {\n      inject: ['slots', 'locale'],";
 assert.ok(src.includes(marker), 'factory return marker not found');
