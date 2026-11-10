@@ -64,7 +64,7 @@ for (const diff of G.DIFFICULTIES) {
 // stays put for the window, then locks.
 {
   clock = 5_000_000;
-  let s = { ...G.initialState(), started: true, piece: { ...G.SHAPES.O && { type: 'O', shape: G.SHAPES.O, color: '#facc15', x: 4, y: 18 } } };
+  let s = { ...G.initialState(), started: true, piece: { ...G.SHAPES.O && { type: 'O', shape: G.SHAPES.O, color: '#f59e0b', x: 4, y: 18 } } };
   s = G.step(s);
   assert.ok(s.groundedAt > 0, 'timer armed on the floor');
   const held = s;

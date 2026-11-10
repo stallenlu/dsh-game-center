@@ -23,7 +23,7 @@ globalThis.window = {
   __ModuleLoader__: { load: (o) => { captured = o; } },
   addEventListener: () => {}, removeEventListener: () => {},
 };
-globalThis.document = { createElement: () => ({ dataset: {} }), head: { appendChild: () => {} } };
+globalThis.document = { createElement: () => ({ dataset: {} }), head: { appendChild: () => {} }, querySelector: () => null };
 new Function('require', src)(() => React);
 
 assert.equal(captured.id, 'dsh-game-center');
@@ -68,16 +68,16 @@ assert.equal(G.collides(board, G.SHAPES.O, 0, 19), true, 'floor');
 board[5][4] = '#fff';
 assert.equal(G.collides(board, G.SHAPES.O, 4, 4), true, 'stack');
 // clearLines: one full row removed, new empty row on top
-const full = G.emptyBoard(); full[19] = Array(10).fill('#fff'); full[18][0] = '#abc';
+const full = G.emptyBoard(); full[19] = Array(10).fill('#fff'); full[18][0] = '#a855f7';
 const cl = G.clearLines(full);
 assert.equal(cl.cleared, 1);
 assert.equal(cl.board.length, 20);
-assert.equal(cl.board[19][0], '#abc', 'surviving row shifted down');
+assert.equal(cl.board[19][0], '#a855f7', 'surviving row shifted down');
 assert.equal(cl.board[0].every((c) => c === null), true, 'fresh top row');
 // merge places piece color
-const p = { type: 'O', shape: G.SHAPES.O, color: '#facc15', x: 3, y: 0 };
+const p = { type: 'O', shape: G.SHAPES.O, color: '#f59e0b', x: 3, y: 0 };
 const merged = G.merge(G.emptyBoard(), p);
-assert.equal(merged[0][3], '#facc15'); assert.equal(merged[1][4], '#facc15');
+assert.equal(merged[0][3], '#f59e0b'); assert.equal(merged[1][4], '#f59e0b');
 // initialState sanity
 const s0 = G.initialState();
 assert.equal(s0.board.length, 20); assert.ok(s0.piece && s0.next); assert.equal(s0.score, 0);
@@ -86,9 +86,9 @@ const s1 = G.step({ ...s0, started: true });
 assert.equal(s1.piece.y, 1, 'gravity');
 const sd = G.softDrop({ ...s0, started: true });
 assert.equal(sd.score, 1, 'soft drop point');
-const hd = G.hardDrop({ ...s0, started: true, piece: { ...s0.piece, shape: G.SHAPES.O, color: '#facc15', x: 0, y: 0 } });
-assert.equal(hd.board[19][0], '#facc15', 'hard drop landed piece locked');
-assert.equal(hd.board[18][1], '#facc15');
+const hd = G.hardDrop({ ...s0, started: true, piece: { ...s0.piece, shape: G.SHAPES.O, color: '#f59e0b', x: 0, y: 0 } });
+assert.equal(hd.board[19][0], '#f59e0b', 'hard drop landed piece locked');
+assert.equal(hd.board[18][1], '#f59e0b');
 assert.equal(hd.score > 0, true, 'hard drop scored');
 assert.ok(hd.next, 'spawned a next piece');
 // move respects walls

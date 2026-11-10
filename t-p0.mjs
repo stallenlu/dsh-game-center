@@ -41,7 +41,7 @@ for (const d of G.DIFFICULTIES) {
   for (let r = 16; r < 20; r++) for (let c = 0; c < 10; c++) board[r][c] = '#fff';
   // 4 rows ready to clear; drop an O into the middle and lock it by hand
   let s = { ...base, started: true, board, lines: 0, startLevel: 5, level: 5 };
-  const piece = { type: 'O', shape: G.SHAPES.O, color: '#facc15', x: 4, y: 15 };
+  const piece = { type: 'O', shape: G.SHAPES.O, color: '#f59e0b', x: 4, y: 15 };
   s = G.lockAndSpawn({ ...s, piece }, G.merge(s.board, { ...piece, y: 15 }));
   assert.equal(s.lines >= 10, false);
   assert.equal(s.level, 5, 'under 10 lines keeps the start level');
@@ -106,7 +106,7 @@ for (const d of G.DIFFICULTIES) {
   Date.now = old;
   assert.notEqual(locked.piece, first.piece, 'locked and spawned a different piece object');
   assert.equal(locked.piece.y, 0, 'the fresh piece spawns at the top');
-  assert.equal(locked.board[19][4], '#facc15', 'the grounded piece is now part of the board');
+  assert.equal(locked.board[19][4], '#f59e0b', 'the grounded piece is now part of the board');
   assert.equal(locked.groundedAt, 0, 'the fresh piece is in the air');
 }
 
@@ -118,8 +118,8 @@ for (const d of G.DIFFICULTIES) {
   assert.equal(s1.piece.y, 1, 'gravity');
   const sd = G.softDrop({ ...s0, started: true });
   assert.equal(sd.score, 1);
-  const hd = G.hardDrop({ ...s0, started: true, piece: { ...s0.piece, shape: G.SHAPES.O, color: '#facc15', x: 0, y: 0 } });
-  assert.equal(hd.board[19][0], '#facc15');
+  const hd = G.hardDrop({ ...s0, started: true, piece: { ...s0.piece, shape: G.SHAPES.O, color: '#f59e0b', x: 0, y: 0 } });
+  assert.equal(hd.board[19][0], '#f59e0b');
   assert.ok(hd.next);
 }
 

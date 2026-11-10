@@ -28,9 +28,9 @@ const G = globalThis.__GC__;
 {
   const board = G.emptyBoard();
   // blockers on three corners of the T's 3x3 box, none of them cells the T occupies
-  board[16][4] = '#111111';
-  board[16][6] = '#111111';
-  board[18][4] = '#111111';
+  board[16][4] = '#000000';
+  board[16][6] = '#000000';
+  board[18][4] = '#000000';
   const piece = { type: 'T', shape: G.SHAPES.T.map((r) => r.slice()), color: '#a855f7', x: 4, y: 16 };
   const base = { ...G.initialState(), started: true, board, piece, score: 0, lines: 0, combo: 0, tspins: 0 };
 
@@ -60,7 +60,7 @@ const G = globalThis.__GC__;
 // ---- 3. consecutive clears pay a combo bonus, a miss resets the run ----
 {
   const full = G.emptyBoard();
-  for (let x = 0; x < G.COLS; x++) full[19][x] = '#facc15';
+  for (let x = 0; x < G.COLS; x++) full[19][x] = '#f59e0b';
   let s = { ...G.initialState(), started: true, score: 0, lines: 0, combo: 0 };
   s = G.lockAndSpawn(s, full.map((r) => r.slice()));
   assert.equal(s.combo, 1, 'first clear opens a run');

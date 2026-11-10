@@ -29,7 +29,7 @@ const G = globalThis.__GC__;
   // vertical bar three rows tall, which cannot fit in the resting rows at all,
   // so the only way to turn it is to kick it upward.
   const board = G.emptyBoard();
-  for (let x = 0; x < G.COLS; x++) { board[18][x] = '#64748b'; board[19][x] = '#64748b'; }
+  for (let x = 0; x < G.COLS; x++) { board[18][x] = '#3b82f6'; board[19][x] = '#3b82f6'; }
   const flatT = G.SHAPES.T.map((r) => r.slice());
   const s = {
     ...G.initialState(), started: true, board,
