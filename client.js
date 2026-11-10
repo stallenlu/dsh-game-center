@@ -8,7 +8,7 @@ window.__ModuleLoader__.load({
     const NS = 'gameCenter';
     const PANEL_ID = 'game-center';
     // Single source for the version shown on game cards. Bump together with package.json.
-    const VERSION = 'v1.2.0';
+    const VERSION = 'v1.2.1';
 
     const zh = {
       open: '游戏中心',
