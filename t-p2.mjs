@@ -124,27 +124,27 @@ const G = globalThis.__GC__;
 {
   assert.equal(typeof mod.registerGame, 'function', 'registerGame is exported');
   assert.equal(typeof mod.listGames, 'function', 'listGames is exported');
-  assert.equal(mod.listGames().length, 2, 'the two built-in games are listed');
-  assert.equal(G.GAMES.length, 2, 'and the built-in array is untouched');
+  assert.equal(mod.listGames().length, 3, 'the three built-in games are listed');
+  assert.equal(G.GAMES.length, 3, 'and the built-in array is untouched');
 
   const off = mod.registerGame({ id: 'demo', name: 'Demo', render: () => null });
-  assert.equal(mod.listGames().length, 3, 'an outside game shows up');
-  assert.equal(mod.listGames()[2].id, 'demo', 'at the end of the list');
-  assert.equal(G.GAMES.length, 2, 'without being mixed into the built-ins');
+  assert.equal(mod.listGames().length, 4, 'an outside game shows up');
+  assert.equal(mod.listGames()[3].id, 'demo', 'at the end of the list');
+  assert.equal(G.GAMES.length, 3, 'without being mixed into the built-ins');
 
   mod.registerGame({ id: 'demo', name: 'Again', render: () => null });
-  assert.equal(mod.listGames().length, 3, 'a duplicate id is refused');
+  assert.equal(mod.listGames().length, 4, 'a duplicate id is refused');
   mod.registerGame({ id: 'tetris', render: () => null });
-  assert.equal(mod.listGames().length, 3, 'and a clash with a built-in is refused');
+  assert.equal(mod.listGames().length, 4, 'and a clash with a built-in is refused');
   mod.registerGame({ id: 'norender' });
   mod.registerGame(null);
   mod.registerGame({ render: () => null });
-  assert.equal(mod.listGames().length, 3, 'malformed entries are refused');
+  assert.equal(mod.listGames().length, 4, 'malformed entries are refused');
 
   off();
-  assert.equal(mod.listGames().length, 2, 'unregistering takes it back out');
+  assert.equal(mod.listGames().length, 3, 'unregistering takes it back out');
   off();
-  assert.equal(mod.listGames().length, 2, 'and unregistering twice is harmless');
+  assert.equal(mod.listGames().length, 3, 'and unregistering twice is harmless');
 }
 
 console.log('P2 OK: T-spin, combo, flashbang, registry');

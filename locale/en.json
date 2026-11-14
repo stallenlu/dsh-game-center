@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Game Center",
-    "description": "Manage every mini-game built in DSH and play them from one panel. Ships with Tetris and Cops & Robbers."
+    "description": "Manage every mini-game built in DSH and play them from one panel. Ships with Tetris, Cops & Robbers and Sock Shuffle."
   },
   "open": "Game Center",
   "title": "Game Center",
@@ -46,6 +46,22 @@
   "tspins": "T-spins",
   "stun": "Stun",
   "stunHint": "Pick up a flashbang to freeze every cop for a moment.",
+  "socks": "Sock Shuffle",
+  "socksDesc": "The wash is done! Sort every sock into its owner's drawer before the belt spits it out. Complete pairs pay a bonus; a wrong drawer tosses the sock straight back into the queue.",
+  "socksHint": "All the dark socks look alike — read the family profile first.",
+  "grab": "Grab / drop",
+  "pairs": "Pairs",
+  "howto": "Family profile",
+  "mGp": "Grandpa",
+  "patGp": "slate dots",
+  "mMom": "Mum",
+  "patMom": "amber flower",
+  "mSis": "Sister",
+  "patSis": "pink star",
+  "mDad": "Dad",
+  "patDad": "blue bands",
+  "mMe": "Me",
+  "patMe": "blue stripes",
   "status": "Ready",
   "empty": "More mini-games will show up here as they are added.",
   "best": "Best",

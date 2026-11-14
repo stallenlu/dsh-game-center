@@ -54,7 +54,7 @@ window.__ModuleLoader__.load({
     const NS = 'gameCenter';
     const PANEL_ID = 'game-center';
     // Single source for the version shown on game cards. Bump together with package.json.
-    const VERSION = 'v1.2.2';
+    const VERSION = 'v1.3.0';
 
     const zh = {
       open: '游戏中心',
@@ -100,6 +100,17 @@ window.__ModuleLoader__.load({
       tspins: 'T 旋',
       stun: '眩晕',
       stunHint: '捡到闪光弹可以短暂定住全部警察。',
+      socks: '袜子大迁徙',
+      socksDesc: '洗衣机脱水完毕！凭全家的穿袜档案，在传送带尽头之前把每只袜子送进主人的抽屉。配成一对有奖励，送错会被弹回队里。',
+      socksHint: '深色袜子看着都一样——先读档案再动手。',
+      grab: '抓取 / 投放',
+      pairs: '已配对',
+      howto: '全家档案',
+      mGp: '爷爷', patGp: '深灰圆点',
+      mMom: '妈妈', patMom: '姜黄花',
+      mSis: '妹妹', patSis: '粉色星星',
+      mDad: '爸爸', patDad: '蓝色横纹',
+      mMe: '我', patMe: '蓝色竖纹',
       status: '可游玩',
       empty: '后续开发的小游戏会自动出现在这里。',
       best: '最高分',
@@ -153,6 +164,17 @@ window.__ModuleLoader__.load({
       tspins: 'T-spins',
       stun: 'Stun',
       stunHint: 'Pick up a flashbang to freeze every cop for a moment.',
+      socks: 'Sock Shuffle',
+      socksDesc: 'The wash is done! Sort every sock into its owner\'s drawer before the belt spits it out. Complete pairs pay a bonus; a wrong drawer tosses the sock straight back into the queue.',
+      socksHint: 'All the dark socks look alike — read the family profile first.',
+      grab: 'Grab / drop',
+      pairs: 'Pairs',
+      howto: 'Family profile',
+      mGp: 'Grandpa', patGp: 'slate dots',
+      mMom: 'Mum', patMom: 'amber flower',
+      mSis: 'Sister', patSis: 'pink star',
+      mDad: 'Dad', patDad: 'blue bands',
+      mMe: 'Me', patMe: 'blue stripes',
       status: 'Ready',
       empty: 'More mini-games will show up here as they are added.',
       best: 'Best',
@@ -246,6 +268,27 @@ window.__ModuleLoader__.load({
       .gc-chase-cell { display: flex; align-items: center; justify-content: center; border-radius: 3px; background: var(--dsw-alias-bg-layer-1); font-size: 17px; line-height: 1; user-select: none; }
       .gc-chase-cell.wall { background: var(--dsw-alias-border-l3); }
       .gc-chase-cell.frozen { opacity: .45; }
+      /* ---- Sock Shuffle ---- */
+      .gc-socks-wrap { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 12px; background: var(--dsw-alias-bg-layer-2); }
+      .gc-socks-machine { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 40px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 12px; background: var(--dsw-alias-bg-layer-1); }
+      .gc-socks-belt { position: relative; display: grid; grid-template-columns: repeat(8, 52px); gap: 4px; padding: 8px; border-radius: 10px; background: var(--dsw-alias-interactive-bg-hover); }
+      .gc-socks-cell { display: flex; align-items: center; justify-content: center; height: 56px; border-radius: 6px; }
+      .gc-socks-cell.claw { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: -2px; background: var(--dsw-alias-bg-layer-1); }
+      .gc-socks-cell.drop { box-shadow: inset -3px 0 0 var(--dsw-alias-state-error-primary, #f43f5e); }
+      .gc-sock { width: 38px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 6px 6px 12px 12px; font-size: 20px; line-height: 1; box-shadow: inset 0 6px 0 rgba(255,255,255,.28); }
+      .gc-sock-mini { width: 20px; height: 24px; font-size: 11px; flex: none; }
+      .gc-socks-clawline { display: grid; grid-template-columns: repeat(8, 52px); gap: 4px; padding: 0 8px; }
+      .gc-socks-claw { display: flex; align-items: center; justify-content: center; height: 50px; font-size: 26px; }
+      .gc-socks-claw.here { border-top: 2px solid var(--dsw-alias-brand-primary); }
+      .gc-socks-drawers { display: flex; gap: 8px; }
+      .gc-drawer { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 6px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; background: var(--dsw-alias-bg-layer-1); }
+      .gc-drawer.open { border-color: var(--dsw-alias-brand-primary); background: var(--dsw-alias-bg-layer-3); }
+      .gc-drawer-face { font-size: 22px; line-height: 1; }
+      .gc-drawer-name { font-size: 11px; color: var(--dsw-alias-label-secondary); }
+      .gc-drawer-owed { font-size: 10px; color: var(--dsw-alias-state-warn-primary, #f59e0b); }
+      .gc-socks-profile { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; }
+      .gc-socks-profile + .gc-socks-profile { border-top: 1px solid var(--dsw-alias-border-l2); }
+      .gc-socks-pat { margin-left: auto; color: var(--dsw-alias-label-secondary); font-size: 11px; }
       .gc-chase-cell { font-size: clamp(16px, 2.4vh, 32px); }
       @media (max-width: 1000px) {
         .gc-play { align-items: flex-start; }
@@ -1106,6 +1149,359 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------ *
+     * Sock Shuffle (袜子大迁徙) — the family wash is done; socks slide out of
+     * the machine onto a belt and every one of them belongs to someone whose
+     * pattern you must recognise before the pile overflows.
+     *
+     * Like the chase, the rules are plain data in / data out (spawn randomness
+     * comes from Math.random, which tests replace): socksTick advances the
+     * clock, shifts the belt, spawns socks; grab/deposit are separate pure
+     * moves. That keeps every rule below checkable from t-socks.mjs.
+     * ------------------------------------------------------------------ */
+    const SOCKS_BELT = 8;          // belt cells; a sock pushed off the right end is lost
+    const SOCKS_TICK_MS = 120;     // reducer clock; shift/spawn count in ticks
+    const SOCKS_PAIRS_PER_LEVEL = 8;
+    // The family. `bg`/`fg` are real hexes (also drawn on the card), `glyph` is
+    // the pattern mark. Dad and me share the blue — stripes are the tell, which
+    // is exactly the real-life annoyance this game is built from.
+    const SOCK_MEMBERS = [
+      { id: 'gp',  nameKey: 'mGp',  patKey: 'patGp',  emoji: '👴', bg: '#475569', fg: '#e2e8f0', glyph: '●' },
+      { id: 'mom', nameKey: 'mMom', patKey: 'patMom', emoji: '👩', bg: '#f59e0b', fg: '#3b2a03', glyph: '✿' },
+      { id: 'sis', nameKey: 'mSis', patKey: 'patSis', emoji: '👧', bg: '#ec4899', fg: '#4a0e2b', glyph: '★' },
+      { id: 'dad', nameKey: 'mDad', patKey: 'patDad', emoji: '👨', bg: '#3b82f6', fg: '#0b1e3f', glyph: '≡' },
+      { id: 'me',  nameKey: 'mMe',  patKey: 'patMe',  emoji: '🧒', bg: '#3b82f6', fg: '#0b1e3f', glyph: '∥' },
+    ];
+    const socksMembers = (difficulty) =>
+      SOCK_MEMBERS.slice(0, difficulty === 'easy' ? 3 : difficulty === 'hard' ? 5 : 4);
+
+    // Per-level belt pressure. Easy stays three-drawer and never loses pace
+    // below one shift per 3 ticks; the members grow with difficulty, not level,
+    // so a run never springs a new person on the player mid-level.
+    const SOCKS_BASE = {
+      easy: { shift: 8, spawn: 13, lost: 0 },
+      normal: { shift: 6, spawn: 10, lost: 0.06 },
+      hard: { shift: 5, spawn: 8, lost: 0.1 },
+    };
+    function socksLevel(difficulty, level) {
+      const b = SOCKS_BASE[difficulty] || SOCKS_BASE.normal;
+      return {
+        shiftEvery: Math.max(3, b.shift - Math.floor(level / 2)),
+        spawnEvery: Math.max(5, b.spawn - level),
+        // A zero base means "this difficulty never swaps socks"; the level ramp
+        // must not silently add swaps to easy.
+        lostP: b.lost === 0 ? 0 : Math.min(0.18, b.lost + level * 0.005),
+      };
+    }
+
+    function socksInitial(difficulty) {
+      const d = SOCKS_BASE[difficulty] ? difficulty : 'normal';
+      const cfg = socksLevel(d, 1);
+      return {
+        started: false, over: false, paused: false,
+        difficulty: d, level: 1, score: 0, lives: 3, pairs: 0, combo: 0,
+        belt: Array.from({ length: SOCKS_BELT }, () => null),
+        ct: 0, nextAt: cfg.spawnEvery, uid: 0,
+        pairsBook: {},          // pairId -> { mid, look, spawned, placed }
+        held: null, claw: 0, sel: 0,
+      };
+    }
+
+    // Choose the next sock: 40% of the time it is the mate of a pair whose
+    // first half is already on the belt or in a drawer — that is what makes the
+    // pair bonus a memory reward instead of luck. Otherwise a fresh pair, and
+    // with lostP a " swapped at school " sock whose visible pattern lies about
+    // its owner until you pick it up.
+    function socksMake(s) {
+      const cfg = socksLevel(s.difficulty, s.level);
+      const pool = socksMembers(s.difficulty);
+      const book = s.pairsBook;
+      const openPids = Object.keys(book).filter((p) => book[p].spawned === 1);
+      if (openPids.length && Math.random() < 0.4) {
+        const pid = openPids[Math.floor(Math.random() * openPids.length)];
+        book[pid].spawned = 2;
+        return { uid: ++s.uid, pairId: pid, mid: book[pid].mid, look: book[pid].look };
+      }
+      const pid = 'p' + (++s.uid);
+      const mid = pool[Math.floor(Math.random() * pool.length)].id;
+      let look = mid;
+      if (cfg.lostP > 0 && Math.random() < cfg.lostP) {
+        const others = pool.filter((m) => m.id !== mid);
+        look = others[Math.floor(Math.random() * others.length)].id;
+      }
+      book[pid] = { mid, look, spawned: 1, placed: 0 };
+      return { uid: s.uid, pairId: pid, mid, look };
+    }
+
+    // Record a placed sock: second half of a pair completes it — worth a bonus
+    // and the level clock. Returns the possibly-updated book plus flags.
+    function socksPlacePair(s, sock) {
+      const book = { ...s.pairsBook };
+      const rec = book[sock.pairId];
+      let pairs = s.pairs, leveled = false;
+      if (rec) {
+        const placed = rec.placed + 1;
+        book[sock.pairId] = { ...rec, placed };
+        if (placed === 2) {
+          pairs += 1;
+          if (pairs % SOCKS_PAIRS_PER_LEVEL === 0) leveled = true;
+        }
+      }
+      return { book, pairs, leveled };
+    }
+
+    // One clock step: shift the belt right (a sock already at the far end falls
+    // behind the machine and costs a life), then try to eject a new sock.
+    function socksTick(s) {
+      if (!s.started || s.over || s.paused) return s;
+      const cfg = socksLevel(s.difficulty, s.level);
+      const next = { ...s, ct: s.ct + 1 };
+      let belt = next.belt;
+      let lives = next.lives;
+
+      if (next.ct % cfg.shiftEvery === 0) {
+        belt = belt.slice();
+        if (belt[SOCKS_BELT - 1]) {
+          belt[SOCKS_BELT - 1] = null;
+          lives -= 1;
+        }
+        for (let i = SOCKS_BELT - 2; i >= 0; i--) {
+          if (belt[i] && !belt[i + 1]) { belt[i + 1] = belt[i]; belt[i] = null; }
+        }
+        next.belt = belt;
+        next.lives = lives;
+        if (lives <= 0) return { ...next, over: true, paused: false };
+      }
+
+      if (next.ct >= next.nextAt) {
+        next.nextAt = next.ct + cfg.spawnEvery;
+        if (!next.belt[0]) {
+          const belt2 = next.belt.slice();
+          const sock = socksMake(next);   // mutates next.uid / next.pairsBook on purpose
+          belt2[0] = sock;
+          next.belt = belt2;
+        }
+      }
+      const cap = socksMembers(next.difficulty).length;
+      if (next.sel >= cap) next.sel = cap - 1;
+      if (next.claw >= SOCKS_BELT) next.claw = SOCKS_BELT - 1;
+      return next;
+    }
+
+    function socksMoveClaw(s, dx) {
+      if (!s.started || s.over || s.paused || s.held) return s;
+      const x = Math.min(SOCKS_BELT - 1, Math.max(0, s.claw + dx));
+      return x === s.claw ? s : { ...s, claw: x };
+    }
+    function socksMoveSel(s, dx) {
+      if (!s.started || s.over || s.paused || !s.held) return s;
+      const members = socksMembers(s.difficulty);
+      const x = Math.min(members.length - 1, Math.max(0, s.sel + dx));
+      return x === s.sel ? s : { ...s, sel: x };
+    }
+
+    // Grab the sock above the claw. A swapped sock needs no sorting: the moment
+    // you touch it its true owner shows and it hops into the right drawer for a
+    // small fee — it cost you the grab, which is the whole joke.
+    function socksGrab(s) {
+      if (!s.started || s.over || s.paused || s.held) return s;
+      const sock = s.belt[s.claw];
+      if (!sock) return s;
+      const belt = s.belt.slice();
+      belt[s.claw] = null;
+      if (sock.look !== sock.mid) {
+        const members = socksMembers(s.difficulty);
+        const owner = Math.max(0, members.findIndex((m) => m.id === sock.mid));
+        const done = socksPlacePair({ ...s, belt }, sock);
+        const sel = owner;
+        return {
+          ...s, belt, ct: s.ct,
+          sel,
+          score: s.score + 25 * s.level,
+          pairs: done.pairs, pairsBook: done.book,
+          level: done.leveled ? s.level + 1 : s.level,
+        };
+      }
+      return { ...s, belt, held: sock };
+    }
+
+    // Drop the held sock into the drawer the selector is on. Right: combo runs,
+    // pair bookkeeping. Wrong: the sock is tossed back onto the belt's front —
+    // worse than losing points, it re-enters the queue you are already losing.
+    function socksDeposit(s) {
+      if (!s.started || s.over || s.paused || !s.held) return s;
+      const members = socksMembers(s.difficulty);
+      const drawer = members[Math.min(s.sel, members.length - 1)];
+      const sock = s.held;
+      if (!drawer || sock.mid !== drawer.id) {
+        const belt = s.belt.slice();
+        const slot = belt.findIndex((b) => b === null);
+        if (slot >= 0) belt[slot] = sock;
+        return { ...s, belt, held: null, combo: 0 };
+      }
+      const combo = s.combo + 1;
+      const done = socksPlacePair(s, sock);
+      return {
+        ...s,
+        held: null,
+        combo,
+        score: s.score + (100 + 50 * (combo - 1)) * s.level,
+        pairs: done.pairs,
+        pairsBook: done.book,
+        level: done.leveled ? s.level + 1 : s.level,
+      };
+    }
+    function socksAction(s) { return s.held ? socksDeposit(s) : socksGrab(s); }
+
+    // Card artwork: five drawers of real socks — each row is one family
+    // member's true bg/fg colours from SOCK_MEMBERS, alternating the pattern.
+    function socksThumb() {
+      return SOCK_MEMBERS.map((m) => Array.from({ length: SOCKS_BELT }, (_, x) => (x % 2 ? m.bg : m.fg)));
+    }
+
+    const socksControlRows = (t) => [
+      { keys: ['←', '→'], label: t('ctrlMove') },
+      { keys: [t('keySpace')], label: t('grab') },
+      { keys: ['P'], label: t('ctrlPause') },
+    ];
+
+    function SocksGame({ t }) {
+      const [difficulty, setDifficultyValue] = useDifficulty('socks');
+      const [s, setS] = useState(() => socksInitial(getDifficulty('socks')));
+      const [best, setBest] = useState(() => {
+        try { return Number(window.localStorage.getItem('gc-socks-best')) || 0; } catch (e) { return 0; }
+      });
+      const sRef = useRef(s);
+      sRef.current = s;
+      const rootRef = useRef(null);
+
+      useEffect(() => {
+        if (s.score > best) {
+          setBest(s.score);
+          try { window.localStorage.setItem('gc-socks-best', String(s.score)); } catch (e) { /* private mode */ }
+        }
+      }, [s.score, best]);
+
+      useEffect(() => {
+        if (!s.started || s.over || s.paused) return undefined;
+        const id = setInterval(() => setS(socksTick), SOCKS_TICK_MS);
+        return () => clearInterval(id);
+      }, [s.started, s.over, s.paused]);
+
+      useEffect(() => {
+        const onKey = (e) => {
+          const root = rootRef.current;
+          if (!root || !root.contains(e.target)) return;
+          const el = e.target;
+          if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName || ''))) return;
+          const cur = sRef.current;
+          let handled = true;
+          switch (e.key) {
+            case 'ArrowLeft': setS((v) => (v.held ? socksMoveSel(v, -1) : socksMoveClaw(v, -1))); break;
+            case 'ArrowRight': setS((v) => (v.held ? socksMoveSel(v, 1) : socksMoveClaw(v, 1))); break;
+            case ' ': setS(socksAction); break;
+            case 'p': case 'P': setS((v) => (v.started && !v.over ? { ...v, paused: !v.paused } : v)); break;
+            default: handled = false;
+          }
+          if (handled && cur.started) e.preventDefault();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, []);
+
+      const start = () => {
+        setS({ ...socksInitial(difficulty), started: true });
+        if (rootRef.current) rootRef.current.focus();
+      };
+      const reset = () => setS(socksInitial(difficulty));
+      let overlay = null;
+      if (!s.started) {
+        overlay = h('div', { className: 'gc-overlay' },
+          h('div', { className: 'gc-overlay-title' }, t('socks')),
+          h(Controls, { t, rows: socksControlRows(t) }),
+          h('div', { className: 'gc-overlay-sub' }, t('socksHint')),
+          h(DifficultyPicker, { t, value: difficulty, onChange: setDifficultyValue }),
+          h('button', { className: 'gc-btn', type: 'button', onClick: start }, t('start')));
+      } else if (s.over) {
+        overlay = h('div', { className: 'gc-overlay' },
+          h('div', { className: 'gc-overlay-title' }, t('gameOver')),
+          h('div', { className: 'gc-overlay-sub' }, t('finalScore') + ': ' + s.score),
+          h(DifficultyPicker, { t, value: difficulty, onChange: setDifficultyValue }),
+          h('button', { className: 'gc-btn', type: 'button', onClick: start }, t('newGame')));
+      } else if (s.paused) {
+        overlay = h('div', { className: 'gc-overlay' },
+          h('div', { className: 'gc-overlay-title' }, t('paused')),
+          h('button', {
+            className: 'gc-btn', type: 'button',
+            onClick: () => setS((v) => ({ ...v, paused: false })),
+          }, t('resume')));
+      }
+
+      const members = socksMembers(s.difficulty);
+      const byId = (mid) => SOCK_MEMBERS.find((m) => m.id === mid) || SOCK_MEMBERS[0];
+      // how many mates still owed to a drawer (spawned but not placed)
+      const owed = (id) => Object.keys(s.pairsBook)
+        .filter((p) => s.pairsBook[p].mid === id && s.pairsBook[p].placed < 2).length;
+
+      const board = h('div', { className: 'gc-socks-wrap' },
+        h('div', { className: 'gc-socks-machine' }, '🌀'),
+        h('div', { className: 'gc-socks-belt' },
+          s.belt.map((sock, i) => {
+            const m = sock ? byId(sock.look) : null;
+            return h('div', {
+              key: i,
+              className: 'gc-socks-cell' + (i === s.claw && !s.held ? ' claw' : '') + (i === SOCKS_BELT - 1 ? ' drop' : ''),
+            }, sock ? h('span', {
+              className: 'gc-sock',
+              style: { background: m.bg, color: m.fg },
+            }, m.glyph) : null);
+          })),
+        h('div', { className: 'gc-socks-clawline' },
+          Array.from({ length: SOCKS_BELT }, (_, i) => h('div', {
+            key: i,
+            className: 'gc-socks-claw' + (i === s.claw ? ' here' : ''),
+          }, i === s.claw && s.held
+            ? h('span', { className: 'gc-sock', style: { background: byId(s.held.look).bg, color: byId(s.held.look).fg } }, byId(s.held.look).glyph)
+            : (i === s.claw ? '🖐' : null)))),
+        h('div', { className: 'gc-socks-drawers' },
+          members.map((m, i) => h('div', {
+            key: m.id,
+            className: 'gc-drawer' + (i === s.sel && s.held ? ' open' : ''),
+          },
+            h('span', { className: 'gc-drawer-face' }, m.emoji),
+            h('span', { className: 'gc-drawer-name' }, t(m.nameKey)),
+            owed(m.id) ? h('span', { className: 'gc-drawer-owed' }, '−' + owed(m.id)) : null))),
+        overlay);
+
+      return h('div', { className: 'gc-play' },
+        h('div', { className: 'gc-board-wrap' }, board),
+        h('div', { className: 'gc-side' },
+          h('div', { className: 'gc-panel' },
+            h('div', { className: 'gc-panel-title' }, t('score')),
+            h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('score')), h('span', { className: 'gc-stat-value' }, s.score)),
+            h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('best')), h('span', { className: 'gc-stat-value' }, best)),
+            h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('level')), h('span', { className: 'gc-stat-value' }, s.level)),
+            h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('combo')), h('span', { className: 'gc-stat-value' }, s.combo || 0)),
+            h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('pairs')), h('span', { className: 'gc-stat-value' }, s.pairs)),
+            h('div', { className: 'gc-stat' }, h('span', { className: 'gc-stat-label' }, t('lives')), h('span', { className: 'gc-stat-value' }, s.lives))),
+          h('div', { className: 'gc-panel' },
+            h('div', { className: 'gc-panel-title' }, t('howto')),
+            members.map((m) => h('div', { key: m.id, className: 'gc-socks-profile' },
+              h('span', { className: 'gc-sock gc-sock-mini', style: { background: m.bg, color: m.fg } }, m.glyph),
+              h('span', null, m.emoji + ' ' + t(m.nameKey)),
+              h('span', { className: 'gc-socks-pat' }, t(m.patKey))))),
+          h('div', { className: 'gc-panel' },
+            h('div', { className: 'gc-panel-title' }, t('controls')),
+            h(Controls, { t, rows: socksControlRows(t) })),
+          h('div', { className: 'gc-actions' },
+            h('button', {
+              className: 'gc-btn ghost small', type: 'button',
+              disabled: !s.started || s.over,
+              onClick: () => setS((v) => ({ ...v, paused: !v.paused })),
+            }, s.paused ? t('resume') : t('pause')),
+            h('button', { className: 'gc-btn ghost small', type: 'button', onClick: reset }, t('restart')))));
+    }
+
+    /* ------------------------------------------------------------------ *
      * Registry — one entry per mini-game. The built-ins are listed here; any
      * other bundle loaded beside this one can append its own through the
      * exported `registerGame` and this panel picks it up without a reload.
@@ -1162,6 +1558,18 @@ window.__ModuleLoader__.load({
         thumbCell: 6,
         thumbGap: 1,
         render: (t) => h(ChaseGame, { t }),
+      },
+      {
+        id: 'socks',
+        nameKey: 'socks',
+        descKey: 'socksDesc',
+        categoryKey: 'category',
+        version: VERSION,
+        statusKey: 'status',
+        thumb: socksThumb(),
+        thumbCell: 11,
+        thumbGap: 2,
+        render: (t) => h(SocksGame, { t }),
       },
     ];
 

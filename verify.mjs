@@ -1,4 +1,4 @@
-/* Minimal check: wiring + the two games' core logic. Run: node game-center/verify.mjs */
+/* Minimal check: wiring + the three games' core logic. Run: node game-center/verify.mjs */
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
@@ -180,7 +180,7 @@ const frozen = { ...G.chaseInitial('normal'), started: true, paused: true };
 assert.equal(G.chaseTick(frozen), frozen, 'a paused tick is a no-op');
 
 // --- card artwork: each picture is built from the game's own data ---
-assert.equal(G.GAMES.length, 2, 'two games registered');
+assert.equal(G.GAMES.length, 3, 'three games registered');
 for (const game of G.GAMES) {
   const cols = game.thumb[0].length;
   assert.ok(cols > 1 && game.thumb.length > 1, game.id + ': the picture is a grid');
@@ -202,4 +202,4 @@ assert.equal(chaseArt[0].length, G.CHASE_COLS, 'the chase picture is the real ma
 assert.ok(chaseArt[0].every(Boolean) && chaseArt[chaseArt.length - 1].every(Boolean), 'the chase picture keeps its wall border');
 assert.ok(chaseArt[G.CHASE_THIEF_START.y][G.CHASE_THIEF_START.x], 'the chase picture marks the thief');
 
-console.log('game-center verify: ALL OK (wiring + ' + registrations.length + ' slots + 2 games)');
+console.log('game-center verify: ALL OK (wiring + ' + registrations.length + ' slots + 3 games)');
