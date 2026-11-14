@@ -54,7 +54,7 @@ window.__ModuleLoader__.load({
     const NS = 'gameCenter';
     const PANEL_ID = 'game-center';
     // Single source for the version shown on game cards. Bump together with package.json.
-    const VERSION = 'v1.3.0';
+    const VERSION = 'v1.3.1';
 
     const zh = {
       open: '游戏中心',
@@ -243,6 +243,7 @@ window.__ModuleLoader__.load({
       .gc-play { --gc-frame-h: clamp(600px, 78vh, 880px); display: flex; gap: clamp(24px, 3.2vw, 56px); flex: 1 0 auto; width: 100%; align-items: center; justify-content: center; flex-wrap: wrap; padding: clamp(16px, 2vw, 32px); margin: 8px 0 0; border: 1px solid var(--dsb-line-strong, #e5e7eb); border-radius: var(--dsb-radius, 12px); background: var(--dsb-surface, #ffffff); outline: none; }
       .gc-play:focus-visible { box-shadow: inset 0 0 0 2px var(--dsb-accent-info, #06b6d4); }
       .gc-play--chase { --gc-frame-h: clamp(390px, 56vh, 620px); }
+      .gc-play--socks { --gc-frame-h: clamp(520px, 70vh, 820px); }
       .gc-board-wrap { position: relative; flex: 0 0 auto; height: var(--gc-frame-h); }
       .gc-board { display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(20, 1fr); gap: 1px; width: auto; height: var(--gc-frame-h); aspect-ratio: 1 / 2; padding: 6px; background: var(--dsw-alias-bg-layer-2); border: 1px solid var(--dsw-alias-border-l1); border-radius: 12px; }
       .gc-cell { background: var(--dsw-alias-bg-layer-1); border-radius: 2px; }
@@ -269,23 +270,26 @@ window.__ModuleLoader__.load({
       .gc-chase-cell.wall { background: var(--dsw-alias-border-l3); }
       .gc-chase-cell.frozen { opacity: .45; }
       /* ---- Sock Shuffle ---- */
-      .gc-socks-wrap { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 12px; background: var(--dsw-alias-bg-layer-2); }
-      .gc-socks-machine { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 40px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 12px; background: var(--dsw-alias-bg-layer-1); }
-      .gc-socks-belt { position: relative; display: grid; grid-template-columns: repeat(8, 52px); gap: 4px; padding: 8px; border-radius: 10px; background: var(--dsw-alias-interactive-bg-hover); }
-      .gc-socks-cell { display: flex; align-items: center; justify-content: center; height: 56px; border-radius: 6px; }
+      .gc-socks-wrap { --sock-cell: clamp(58px, 9.2vw, 108px); --sock-gap: 4px; position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: clamp(8px, 1.2vh, 14px); height: 100%; padding: clamp(12px, 1.6vw, 22px); border: 1px solid var(--dsw-alias-border-l1); border-radius: 12px; background: var(--dsw-alias-bg-layer-2); }
+      .gc-socks-top { display: flex; align-items: center; gap: clamp(8px, 1.2vw, 16px); }
+      .gc-socks-machine { width: clamp(64px, 10vw, 120px); height: clamp(64px, 10vw, 120px); display: flex; align-items: center; justify-content: center; font-size: clamp(40px, 6vw, 76px); border: 1px solid var(--dsw-alias-border-l2); border-radius: 16px; background: var(--dsw-alias-bg-layer-1); }
+      .gc-socks-belt { position: relative; display: grid; grid-template-columns: repeat(8, var(--sock-cell)); gap: var(--sock-gap); padding: clamp(6px, .8vw, 12px); border-radius: 12px; background: var(--dsw-alias-interactive-bg-hover); }
+      .gc-socks-lane { flex: 1; display: flex; flex-direction: column; }
+      .gc-socks-cell { display: flex; align-items: center; justify-content: center; height: calc(var(--sock-cell) * 1.2); border-radius: 6px; }
       .gc-socks-cell.claw { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: -2px; background: var(--dsw-alias-bg-layer-1); }
       .gc-socks-cell.drop { box-shadow: inset -3px 0 0 var(--dsw-alias-state-error-primary, #f43f5e); }
-      .gc-sock { width: 38px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 6px 6px 12px 12px; font-size: 20px; line-height: 1; box-shadow: inset 0 6px 0 rgba(255,255,255,.28); }
-      .gc-sock-mini { width: 20px; height: 24px; font-size: 11px; flex: none; }
-      .gc-socks-clawline { display: grid; grid-template-columns: repeat(8, 52px); gap: 4px; padding: 0 8px; }
-      .gc-socks-claw { display: flex; align-items: center; justify-content: center; height: 50px; font-size: 26px; }
+      .gc-sock { display: block; width: calc(var(--sock-cell) * .78); height: calc(var(--sock-cell) * 1.02); }
+      .gc-sock-mini { width: 22px; height: 28px; flex: none; }
+      .gc-socks-clawline { display: grid; grid-template-columns: repeat(8, var(--sock-cell)); gap: var(--sock-gap); padding: 0 clamp(6px, .8vw, 12px); }
+      .gc-socks-claw { display: flex; align-items: center; justify-content: center; height: calc(var(--sock-cell) * .5); font-size: clamp(20px, 2.6vw, 32px); }
       .gc-socks-claw.here { border-top: 2px solid var(--dsw-alias-brand-primary); }
-      .gc-socks-drawers { display: flex; gap: 8px; }
-      .gc-drawer { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 6px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; background: var(--dsw-alias-bg-layer-1); }
+      .gc-socks-claw .gc-sock { width: calc(var(--sock-cell) * .52); height: calc(var(--sock-cell) * .66); }
+      .gc-socks-drawers { display: flex; gap: clamp(6px, .8vw, 12px); }
+      .gc-drawer { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: clamp(64px, 9vh, 110px); padding: clamp(6px, 1vh, 12px) 4px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 12px; background: var(--dsw-alias-bg-layer-1); }
       .gc-drawer.open { border-color: var(--dsw-alias-brand-primary); background: var(--dsw-alias-bg-layer-3); }
-      .gc-drawer-face { font-size: 22px; line-height: 1; }
-      .gc-drawer-name { font-size: 11px; color: var(--dsw-alias-label-secondary); }
-      .gc-drawer-owed { font-size: 10px; color: var(--dsw-alias-state-warn-primary, #f59e0b); }
+      .gc-drawer-face { font-size: clamp(20px, 2.6vw, 32px); line-height: 1; }
+      .gc-drawer-name { font-size: clamp(11px, 1.1vw, 14px); color: var(--dsw-alias-label-secondary); }
+      .gc-drawer-owed { font-size: clamp(10px, 1vw, 13px); color: var(--dsw-alias-state-warn-primary, #f59e0b); }
       .gc-socks-profile { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; }
       .gc-socks-profile + .gc-socks-profile { border-top: 1px solid var(--dsw-alias-border-l2); }
       .gc-socks-pat { margin-left: auto; color: var(--dsw-alias-label-secondary); font-size: 11px; }
@@ -1352,10 +1356,60 @@ window.__ModuleLoader__.load({
     }
     function socksAction(s) { return s.held ? socksDeposit(s) : socksGrab(s); }
 
-    // Card artwork: five drawers of real socks — each row is one family
-    // member's true bg/fg colours from SOCK_MEMBERS, alternating the pattern.
+    // A real sock, not a coloured square: cuff, leg, heel and toe pointing to
+    // the owner's drawer. The pattern (dots / flower / star / bands / stripes)
+    // is clipped to the sock body, so the silhouette carries the shape and the
+    // pattern carries the person — the two things the sorting is actually about.
+    const SOCK_BODY = 'M9 8 h10 v14 h11 a6 6 0 0 1 6 6 v2 a4 4 0 0 1 -4 4 H9 Z';
+    function sockPattern(m) {
+      const els = [];
+      if (m.id === 'gp') {
+        for (let y = 13; y <= 31; y += 6) {
+          for (let x = 13; x <= 33; x += 6) els.push(h('circle', { key: x + '-' + y, cx: x, cy: y, r: 1.7 }));
+        }
+      } else if (m.id === 'mom') {
+        const flowers = [[14, 13], [24, 13], [13, 24], [26, 28]];
+        for (const [fx, fy] of flowers) {
+          els.push(h('circle', { key: fx + '-' + fy + '-c', cx: fx, cy: fy, r: 1.2 }));
+          for (const [dx, dy] of [[0, -2.4], [2.1, -0.7], [1.3, 2], [-1.3, 2], [-2.1, -0.7]]) {
+            els.push(h('circle', { key: fx + '-' + fy + '-' + dx + '-' + dy, cx: fx + dx, cy: fy + dy, r: 1.1 }));
+          }
+        }
+      } else if (m.id === 'sis') {
+        const star = (cx, cy, k) => h('path', {
+          key: 'star' + cx + '-' + cy,
+          d: `M${cx} ${cy - 3.4 * k} l${1 * k} ${2.1 * k} h${2.7 * k} l${-1.8 * k} ${1.4 * k} l${0.6 * k} ${2.6 * k} l${-2.1 * k} ${-1.2 * k} l${-2.1 * k} ${1.2 * k} l${0.6 * k} ${-2.6 * k} l${-1.8 * k} ${-1.4 * k} h${2.7 * k} Z`,
+        });
+        els.push(star(14, 14, 1)); els.push(star(25, 15, 0.9)); els.push(star(15, 28, 1)); els.push(star(29, 30, 0.8));
+      } else if (m.id === 'dad') {
+        for (let y = 10; y <= 32; y += 5) els.push(h('rect', { key: 'b' + y, x: 8, y, width: 30, height: 2.2 }));
+      } else {
+        for (let x = 11; x <= 33; x += 5) els.push(h('rect', { key: 's' + x, x, y: 6, width: 2.2, height: 30 }));
+      }
+      return els;
+    }
+    function SockSprite({ m, mini }) {
+      const clip = 'gcsock-' + m.id + (mini ? '-mini' : '');
+      return h('svg', {
+        viewBox: '0 0 40 36', className: 'gc-sock' + (mini ? ' gc-sock-mini' : ''), 'aria-hidden': true,
+      },
+        h('defs', null, h('clipPath', { id: clip }, h('path', { d: SOCK_BODY }))),
+        h('path', { d: SOCK_BODY, fill: m.bg }),
+        h('g', { clipPath: `url(#${clip})`, fill: m.fg }, sockPattern(m)),
+        h('rect', { x: 8, y: 1.5, width: 12, height: 7, rx: 2, fill: m.fg }),
+        h('path', { d: SOCK_BODY, fill: 'none', stroke: 'rgba(0,0,0,.28)', strokeWidth: 1.2 }));
+    }
+
+    // Card artwork: pairs of socks, three pixel rows each — a cuff line, a leg
+    // line and a foot line — in that member's real bg/fg colours.
     function socksThumb() {
-      return SOCK_MEMBERS.map((m) => Array.from({ length: SOCKS_BELT }, (_, x) => (x % 2 ? m.bg : m.fg)));
+      const rows = [];
+      for (const m of SOCK_MEMBERS) {
+        rows.push([m.fg, m.fg, 0, 0, 0, 0, m.fg, m.fg]);
+        rows.push([m.bg, m.bg, 0, 0, 0, 0, m.bg, m.bg]);
+        rows.push([0, m.bg, m.bg, m.bg, m.bg, m.bg, m.bg, 0]);
+      }
+      return rows;
     }
 
     const socksControlRows = (t) => [
@@ -1443,25 +1497,24 @@ window.__ModuleLoader__.load({
         .filter((p) => s.pairsBook[p].mid === id && s.pairsBook[p].placed < 2).length;
 
       const board = h('div', { className: 'gc-socks-wrap' },
-        h('div', { className: 'gc-socks-machine' }, '🌀'),
-        h('div', { className: 'gc-socks-belt' },
-          s.belt.map((sock, i) => {
-            const m = sock ? byId(sock.look) : null;
-            return h('div', {
-              key: i,
-              className: 'gc-socks-cell' + (i === s.claw && !s.held ? ' claw' : '') + (i === SOCKS_BELT - 1 ? ' drop' : ''),
-            }, sock ? h('span', {
-              className: 'gc-sock',
-              style: { background: m.bg, color: m.fg },
-            }, m.glyph) : null);
-          })),
-        h('div', { className: 'gc-socks-clawline' },
-          Array.from({ length: SOCKS_BELT }, (_, i) => h('div', {
-            key: i,
-            className: 'gc-socks-claw' + (i === s.claw ? ' here' : ''),
-          }, i === s.claw && s.held
-            ? h('span', { className: 'gc-sock', style: { background: byId(s.held.look).bg, color: byId(s.held.look).fg } }, byId(s.held.look).glyph)
-            : (i === s.claw ? '🖐' : null)))),
+        h('div', { className: 'gc-socks-top' },
+          h('div', { className: 'gc-socks-machine' }, '🌀'),
+          h('div', { className: 'gc-socks-lane' },
+            h('div', { className: 'gc-socks-belt' },
+              s.belt.map((sock, i) => {
+                const m = sock ? byId(sock.look) : null;
+                return h('div', {
+                  key: i,
+                  className: 'gc-socks-cell' + (i === s.claw && !s.held ? ' claw' : '') + (i === SOCKS_BELT - 1 ? ' drop' : ''),
+                }, sock ? h(SockSprite, { m }) : null);
+              })),
+            h('div', { className: 'gc-socks-clawline' },
+              Array.from({ length: SOCKS_BELT }, (_, i) => h('div', {
+                key: i,
+                className: 'gc-socks-claw' + (i === s.claw ? ' here' : ''),
+              }, i === s.claw && s.held
+                ? h(SockSprite, { m: byId(s.held.look), mini: true })
+                : (i === s.claw ? '🖐' : null)))))),
         h('div', { className: 'gc-socks-drawers' },
           members.map((m, i) => h('div', {
             key: m.id,
@@ -1472,7 +1525,7 @@ window.__ModuleLoader__.load({
             owed(m.id) ? h('span', { className: 'gc-drawer-owed' }, '−' + owed(m.id)) : null))),
         overlay);
 
-      return h('div', { className: 'gc-play' },
+      return h('div', { className: 'gc-play gc-play--socks', ref: rootRef, tabIndex: -1 },
         h('div', { className: 'gc-board-wrap' }, board),
         h('div', { className: 'gc-side' },
           h('div', { className: 'gc-panel' },
@@ -1486,7 +1539,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'gc-panel' },
             h('div', { className: 'gc-panel-title' }, t('howto')),
             members.map((m) => h('div', { key: m.id, className: 'gc-socks-profile' },
-              h('span', { className: 'gc-sock gc-sock-mini', style: { background: m.bg, color: m.fg } }, m.glyph),
+              h(SockSprite, { m, mini: true }),
               h('span', null, m.emoji + ' ' + t(m.nameKey)),
               h('span', { className: 'gc-socks-pat' }, t(m.patKey))))),
           h('div', { className: 'gc-panel' },
@@ -1567,8 +1620,8 @@ window.__ModuleLoader__.load({
         version: VERSION,
         statusKey: 'status',
         thumb: socksThumb(),
-        thumbCell: 11,
-        thumbGap: 2,
+        thumbCell: 4,
+        thumbGap: 1,
         render: (t) => h(SocksGame, { t }),
       },
     ];

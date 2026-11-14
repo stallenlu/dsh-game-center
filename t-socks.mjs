@@ -241,10 +241,12 @@ assert.equal(G.socksLevel('easy', 1).lostP, 0, 'easy never swaps');
   const socksGame = G.GAMES.find((g) => g.id === 'socks');
   assert.ok(socksGame, 'socks is registered');
   const art = G.socksThumb();
-  assert.equal(art.length, G.SOCK_MEMBERS.length);
+  assert.equal(art.length, G.SOCK_MEMBERS.length * 3, 'three pixel rows per member: cuff, leg, foot');
   assert.equal(art[0].length, G.SOCKS_BELT);
-  assert.equal(art[3][1], G.SOCK_MEMBERS[3].bg, 'a row is that member\'s real sock colour');
-  assert.ok(new Set(art.flat()).size >= 6, 'the picture uses the whole family palette');
+  assert.equal(art[10][0], G.SOCK_MEMBERS[3].bg, 'the leg row is that member\'s real sock colour');
+  assert.equal(art[9][0], G.SOCK_MEMBERS[3].fg, 'the cuff row is their trim colour');
+  assert.ok(art[11].slice(1, 7).every((c) => c === G.SOCK_MEMBERS[3].bg), 'the foot row runs across the sole');
+  assert.ok(new Set(art.flat().filter(Boolean)).size >= 6, 'the picture uses the whole family palette');
 }
 
 Math.random = realRandom;
